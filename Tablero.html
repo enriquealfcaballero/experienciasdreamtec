@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tablero Operativo · Eventos Dreamtec</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+/* === Tablero Operativo — Eventos === */
+:root {
+  --bg:        oklch(0.985 0.005 80);
+  --bg-card:   oklch(1 0 0);
+  --bg-soft:   oklch(0.972 0.005 80);
+  --ink:       oklch(0.22 0.02 260);
+  --ink-soft:  oklch(0.42 0.02 260);
+  --ink-mute:  oklch(0.62 0.02 260);
+  --line:      oklch(0.90 0.01 260);
+  --line-soft: oklch(0.94 0.008 260);
+  --accent:    oklch(0.55 0.13 264);
+  --crit:      oklch(0.55 0.18 25);
+  --warn:      oklch(0.65 0.16 60);
+  --ok:        oklch(0.55 0.13 150);
+  --r-sm: 4px;
+  --r-md: 8px;
+  --r-lg: 14px;
+  --font-sans: 'IBM Plex Sans', -apple-system, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-sans); font-size: 14px; line-height: 1.45; -webkit-font-smoothing: antialiased; }
+button, input, textarea, select { font: inherit; color: inherit; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+#root { width: 100%; }
+.app { max-width: 1440px; margin: 0 auto; padding: 24px 32px 48px; }
+
+/* === Top bar === */
+.topbar { display: flex; align-items: center; gap: 16px; padding-bottom: 18px; margin-bottom: 24px; border-bottom: 1px solid var(--line); }
+.tb-logo { height: 24px; width: auto; opacity: 0.9; }
+.tb-div { width: 1px; height: 20px; background: var(--line); }
+.tb-tag { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-mute); }
+.tb-spacer { flex: 1; }
+
+/* Connection pill */
+.tb-conn { display: inline-flex; align-items: center; gap: 7px; padding: 5px 11px; border-radius: 100px; border: 1px solid var(--line); background: var(--bg-card); font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-mute); }
+.tb-conn-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ink-mute); }
+.tb-conn.live .tb-conn-dot { background: var(--ok); box-shadow: 0 0 0 3px oklch(0.55 0.13 150 / 0.18); }
+.tb-conn.saving .tb-conn-dot { background: var(--warn); }
+.tb-conn.error { color: var(--crit); border-color: oklch(0.85 0.07 25); }
+.tb-conn.error .tb-conn-dot { background: var(--crit); }
+
+/* === Nav button (Tablero → Gantt) === */
+.nav-cta { display: inline-flex; align-items: center; gap: 10px; padding: 10px 16px 10px 12px; border-radius: 10px; background: var(--ink); color: var(--bg-card); text-decoration: none; font-size: 13px; font-weight: 600; letter-spacing: 0.01em; border: 1px solid var(--ink); box-shadow: 0 1px 0 oklch(1 0 0 / 0.08) inset, 0 1px 2px oklch(0 0 0 / 0.10), 0 4px 12px oklch(0 0 0 / 0.06); transition: transform .12s ease, box-shadow .18s ease, background .18s ease; white-space: nowrap; }
+.nav-cta:hover { background: oklch(0.30 0.02 260); box-shadow: 0 1px 0 oklch(1 0 0 / 0.08) inset, 0 2px 4px oklch(0 0 0 / 0.12), 0 10px 24px oklch(0 0 0 / 0.10); transform: translateY(-1px); color: var(--bg-card); text-decoration: none; }
+.nav-cta:active { transform: translateY(0); }
+.nav-cta:focus-visible { outline: 2px solid oklch(0.55 0.13 264); outline-offset: 2px; }
+.nav-cta-icon { width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; background: oklch(1 0 0 / 0.08); border-radius: 7px; flex-shrink: 0; }
+.nav-cta-icon svg { width: 16px; height: 16px; stroke: currentColor; }
+.nav-cta-text { display: inline-flex; flex-direction: column; line-height: 1.15; gap: 2px; }
+.nav-cta-eye { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.10em; text-transform: uppercase; color: oklch(1 0 0 / 0.55); font-weight: 500; }
+.nav-cta-label { font-size: 13.5px; font-weight: 600; }
+.nav-cta-arrow { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; margin-left: 2px; opacity: 0.7; transition: transform .18s ease, opacity .18s ease; }
+.nav-cta:hover .nav-cta-arrow { transform: translateX(3px); opacity: 1; }
+.nav-cta-arrow svg { width: 14px; height: 14px; stroke: currentColor; }
+
+/* Role selector */
+.role-sel { display: inline-flex; align-items: center; gap: 8px; padding: 4px 4px 4px 12px; border: 1px solid var(--line); border-radius: 100px; background: var(--bg-card); }
+.role-sel-label { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-mute); }
+.role-sel select { border: 0; background: transparent; padding: 4px 22px 4px 8px; border-radius: 100px; cursor: pointer; font-weight: 500; appearance: none; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='rgba(0,0,0,.5)' d='M0 0h10L5 6z'/></svg>"); background-repeat: no-repeat; background-position: right 8px center; }
+.role-sel select:hover { background-color: var(--bg-soft); }
+
+/* === Page header === */
+.ph { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 24px; }
+.ph-l { flex: 1; }
+.ph-eye { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-mute); margin-bottom: 6px; }
+.ph-title { font-size: 28px; font-weight: 600; letter-spacing: -0.015em; margin: 0 0 6px; }
+.ph-sub { font-size: 13.5px; color: var(--ink-soft); max-width: 720px; }
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: var(--r-md); border: 1px solid var(--line); background: var(--bg-card); cursor: pointer; font-weight: 500; transition: border-color .15s, background .15s; }
+.btn:hover { border-color: var(--ink-mute); background: var(--bg-soft); }
+.btn-primary { background: var(--ink); color: var(--bg-card); border-color: var(--ink); }
+.btn-primary:hover { background: oklch(0.30 0.02 260); border-color: oklch(0.30 0.02 260); }
+.btn-ghost { border-color: transparent; background: transparent; }
+.btn-ghost:hover { background: var(--bg-soft); border-color: var(--line); }
+.btn-sm { padding: 6px 12px; font-size: 12.5px; }
+.btn-icon { padding: 8px; }
+
+/* === Events list === */
+.evts { display: grid; gap: 12px; }
+.evt-empty { border: 2px dashed var(--line); border-radius: var(--r-md); padding: 48px 24px; text-align: center; background: var(--bg-card); }
+.evt-empty-h { font-size: 18px; font-weight: 600; margin-bottom: 6px; }
+.evt-empty-p { color: var(--ink-soft); font-size: 13.5px; max-width: 460px; margin: 0 auto 18px; }
+.evt-card { display: grid; grid-template-columns: auto 1fr auto auto; gap: 20px; align-items: center; padding: 18px 20px; background: var(--bg-card); border: 1px solid var(--line); border-radius: var(--r-md); cursor: pointer; transition: border-color .15s, transform .12s; text-align: left; width: 100%; position: relative; }
+.evt-card:hover { border-color: var(--ink-mute); transform: translateY(-1px); }
+.evt-card:hover .evt-card-del { opacity: 1; }
+.evt-card-del { opacity: 0; width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--line); background: var(--bg-card); color: var(--ink-mute); cursor: pointer; font-size: 16px; line-height: 1; display: inline-flex; align-items: center; justify-content: center; transition: all .15s; flex-shrink: 0; padding: 0; }
+.evt-card-del:hover { background: oklch(0.96 0.04 25); border-color: oklch(0.85 0.07 25); color: var(--crit); }
+.evt-card-del:focus { opacity: 1; outline: 2px solid var(--accent); outline-offset: 2px; }
+.evt-card-date { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 64px; padding: 8px 10px; background: var(--bg-soft); border: 1px solid var(--line); border-radius: var(--r-sm); }
+.evt-card-date-d { font-size: 22px; font-weight: 600; line-height: 1; letter-spacing: -0.02em; }
+.evt-card-date-m { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-mute); margin-top: 4px; }
+.evt-card-body { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.evt-card-top { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.evt-card-title { font-size: 15.5px; font-weight: 600; margin: 0; }
+.evt-card-client { font-size: 12.5px; color: var(--ink-mute); font-family: var(--font-mono); letter-spacing: 0.02em; }
+.evt-card-meta { display: flex; gap: 14px; font-size: 11.5px; color: var(--ink-mute); font-family: var(--font-mono); letter-spacing: 0.04em; text-transform: uppercase; }
+.evt-card-meta span { display: inline-flex; align-items: center; gap: 4px; }
+.evt-card-stat { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; min-width: 140px; }
+.evt-card-pct { font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.evt-card-pct-l { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-mute); }
+.evt-card-bar { width: 130px; height: 4px; background: var(--line-soft); border-radius: 2px; overflow: hidden; }
+.evt-card-bar-fill { height: 100%; background: var(--accent); transition: width .3s; }
+.evt-card-bar-fill.ok { background: var(--ok); }
+.evt-card-bar-fill.crit { background: var(--crit); }
+.evt-card-badge { font-family: var(--font-mono); font-size: 9.5px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; padding: 2px 8px; border-radius: 100px; border: 1px solid var(--line); background: var(--bg-soft); color: var(--ink-mute); }
+.evt-card-badge.crit { color: var(--crit); background: oklch(0.96 0.04 25); border-color: oklch(0.88 0.06 25); }
+.evt-card-badge.warn { color: oklch(0.40 0.13 60); background: oklch(0.96 0.04 60); border-color: oklch(0.88 0.06 60); }
+.evt-card-badge.ok { color: oklch(0.30 0.13 150); background: oklch(0.95 0.04 150); border-color: oklch(0.85 0.06 150); }
+
+/* === New event form === */
+.form { background: var(--bg-card); border: 1px solid var(--line); border-radius: var(--r-md); padding: 24px; max-width: 720px; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 16px; margin-bottom: 18px; }
+.form-row { display: flex; flex-direction: column; gap: 6px; }
+.form-row.full { grid-column: 1 / -1; }
+.form-row label { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-mute); }
+.form-row input, .form-row textarea, .form-row select { padding: 9px 12px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--bg-card); font-size: 13.5px; transition: border-color .15s; }
+.form-row input:focus, .form-row textarea:focus, .form-row select:focus { outline: none; border-color: var(--accent); }
+.form-row textarea { resize: vertical; min-height: 64px; font-family: inherit; }
+.form-pay { display: flex; gap: 8px; }
+.form-pay-opt { flex: 1; padding: 10px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--bg-card); cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all .15s; }
+.form-pay-opt:hover { border-color: var(--ink-mute); }
+.form-pay-opt.on { border-color: var(--ink); background: var(--ink); color: var(--bg-card); }
+.form-pay-opt-r { width: 14px; height: 14px; border: 1.5px solid currentColor; border-radius: 50%; position: relative; flex-shrink: 0; }
+.form-pay-opt.on .form-pay-opt-r::after { content: ''; position: absolute; inset: 3px; background: currentColor; border-radius: 50%; }
+.form-foot { display: flex; gap: 10px; justify-content: flex-end; padding-top: 16px; border-top: 1px solid var(--line-soft); }
+
+/* === Event detail === */
+.detail-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+.crumb { font-size: 12.5px; color: var(--ink-mute); }
+.crumb-cur { color: var(--ink); font-weight: 500; }
+.evt-hd { display: grid; grid-template-columns: 1fr auto; gap: 24px; align-items: start; margin-bottom: 18px; padding-bottom: 20px; border-bottom: 1px solid var(--line); }
+.evt-hd-l { min-width: 0; }
+.evt-hd-eye { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-mute); margin-bottom: 6px; }
+.evt-hd-title { margin: 0 0 8px; font-size: 26px; font-weight: 600; letter-spacing: -0.015em; line-height: 1.15; }
+.evt-hd-client { font-family: var(--font-mono); font-size: 12.5px; color: var(--ink-soft); }
+.evt-hd-meta { display: flex; gap: 18px; margin-top: 12px; font-size: 12px; color: var(--ink-mute); font-family: var(--font-mono); letter-spacing: 0.04em; text-transform: uppercase; flex-wrap: wrap; }
+.evt-hd-meta span strong { color: var(--ink); font-weight: 600; }
+.evt-hd-r { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+.evt-countdown { display: flex; align-items: baseline; gap: 8px; padding: 12px 16px; background: var(--bg-card); border: 1px solid var(--line); border-radius: var(--r-md); }
+.evt-countdown-n { font-size: 28px; font-weight: 600; letter-spacing: -0.02em; line-height: 1; font-variant-numeric: tabular-nums; }
+.evt-countdown-l { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-mute); }
+.evt-countdown.crit { background: oklch(0.96 0.04 25); border-color: oklch(0.85 0.06 25); }
+.evt-countdown.crit .evt-countdown-n { color: var(--crit); }
+.alerts { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+.alert { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: var(--r-md); border: 1px solid; font-size: 13px; }
+.alert.crit { background: oklch(0.96 0.04 25); border-color: oklch(0.85 0.07 25); color: oklch(0.30 0.13 25); }
+.alert.warn { background: oklch(0.96 0.04 60); border-color: oklch(0.85 0.07 60); color: oklch(0.34 0.13 60); }
+.alert-icon { font-family: var(--font-mono); font-weight: 700; width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; background: currentColor; }
+.alert-icon span { color: var(--bg-card); font-size: 11px; }
+.alert strong { font-weight: 600; }
+.prog { display: grid; grid-template-columns: auto 1fr; gap: 16px 20px; align-items: center; padding: 14px 18px; background: var(--bg-card); border: 1px solid var(--line); border-radius: var(--r-md); margin-bottom: 18px; }
+.prog-pct { display: flex; flex-direction: column; align-items: center; padding-right: 18px; border-right: 1px solid var(--line); }
+.prog-pct-n { font-size: 32px; font-weight: 600; letter-spacing: -0.02em; line-height: 1; font-variant-numeric: tabular-nums; }
+.prog-pct-l { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-mute); margin-top: 4px; }
+.prog-areas { display: flex; flex-wrap: wrap; gap: 8px 14px; }
+.prog-area { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.prog-area-dot { width: 8px; height: 8px; border-radius: 50%; }
+.prog-area-name { color: var(--ink-soft); font-weight: 500; }
+.prog-area-bar { width: 60px; height: 4px; background: var(--line-soft); border-radius: 2px; overflow: hidden; }
+.prog-area-bar-fill { height: 100%; transition: width .3s; }
+.prog-area-frac { font-family: var(--font-mono); font-size: 10.5px; color: var(--ink-mute); font-variant-numeric: tabular-nums; }
+.stages { display: flex; flex-direction: column; gap: 14px; }
+.stg { background: var(--bg-card); border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; }
+.stg-hd { display: grid; grid-template-columns: auto 1fr auto auto; gap: 16px; align-items: center; padding: 14px 18px; cursor: pointer; user-select: none; }
+.stg-hd:hover { background: var(--bg-soft); }
+.stg-n { font-family: var(--font-mono); font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: var(--ink-mute); width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--line); border-radius: 50%; }
+.stg-titles { display: flex; flex-direction: column; gap: 1px; }
+.stg-title { font-size: 14.5px; font-weight: 600; letter-spacing: -0.005em; }
+.stg-sub { font-size: 11.5px; color: var(--ink-mute); }
+.stg-prog { display: flex; align-items: center; gap: 10px; }
+.stg-prog-frac { font-family: var(--font-mono); font-size: 11.5px; font-variant-numeric: tabular-nums; color: var(--ink-soft); }
+.stg-prog-bar { width: 80px; height: 4px; background: var(--line-soft); border-radius: 2px; overflow: hidden; }
+.stg-prog-bar-fill { height: 100%; background: var(--accent); transition: width .3s; }
+.stg-prog-bar-fill.done { background: var(--ok); }
+.stg-chev { font-family: var(--font-mono); font-size: 14px; color: var(--ink-mute); transition: transform .15s; }
+.stg.open .stg-chev { transform: rotate(90deg); }
+.stg-body { border-top: 1px solid var(--line); padding: 4px 0; display: none; }
+.stg.open .stg-body { display: block; }
+.tsk { display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: flex-start; padding: 12px 18px; border-bottom: 1px solid var(--line-soft); transition: background .12s; }
+.tsk:last-child { border-bottom: 0; }
+.tsk:hover { background: var(--bg-soft); }
+.tsk.done .tsk-label { color: var(--ink-mute); text-decoration: line-through; text-decoration-color: oklch(0.85 0.01 260); }
+.tsk-check { width: 20px; height: 20px; border: 1.5px solid var(--ink-mute); border-radius: var(--r-sm); background: var(--bg-card); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; transition: all .15s; padding: 0; }
+.tsk-check:hover { border-color: var(--ink); }
+.tsk-check.on { background: var(--ok); border-color: var(--ok); }
+.tsk-check.on::after { content: '✓'; color: var(--bg-card); font-size: 13px; font-weight: 700; line-height: 1; }
+.tsk-check.locked { opacity: 0.4; cursor: not-allowed; }
+.tsk-check.locked:hover { border-color: var(--ink-mute); }
+.tsk-body { min-width: 0; }
+.tsk-top { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px 12px; margin-bottom: 3px; }
+.tsk-label { font-size: 13.5px; font-weight: 500; color: var(--ink); }
+.tsk-area { display: inline-flex; align-items: center; gap: 5px; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-mute); }
+.tsk-area-dot { width: 6px; height: 6px; border-radius: 50%; }
+.tsk-desc { font-size: 12px; color: var(--ink-soft); margin-top: 2px; line-height: 1.5; }
+.tsk-meta { display: flex; gap: 14px; margin-top: 6px; align-items: center; flex-wrap: wrap; }
+.tsk-meta-item { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.06em; color: var(--ink-mute); display: inline-flex; align-items: center; gap: 5px; }
+.tsk-meta-item.late { color: var(--crit); font-weight: 600; }
+.tsk-meta-item.now { color: oklch(0.40 0.13 60); font-weight: 600; }
+.tsk-marker { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0; min-width: 140px; text-align: right; }
+.tsk-marker-by { font-family: var(--font-mono); font-size: 10.5px; color: var(--ink-soft); font-weight: 600; letter-spacing: 0.02em; }
+.tsk-marker-when { font-family: var(--font-mono); font-size: 10px; color: var(--ink-mute); }
+.tsk-marker-undo { font-family: var(--font-mono); font-size: 10px; color: var(--ink-mute); cursor: pointer; background: none; border: 0; padding: 2px 6px; border-radius: 3px; margin-top: 2px; }
+.tsk-marker-undo:hover { background: var(--bg-soft); color: var(--ink); }
+.tsk-day { font-family: var(--font-mono); font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 7px; border-radius: 3px; background: var(--bg-soft); border: 1px solid var(--line-soft); color: var(--ink-soft); }
+.stg-empty { padding: 16px 18px; font-size: 12.5px; color: var(--ink-mute); font-style: italic; }
+
+/* Boot / config / loading states */
+.boot { max-width: 640px; margin: 80px auto; padding: 32px; background: var(--bg-card); border: 1px solid var(--line); border-radius: var(--r-lg); }
+.boot h1 { font-size: 20px; margin: 0 0 10px; }
+.boot p { color: var(--ink-soft); font-size: 13.5px; }
+.boot code { font-family: var(--font-mono); background: var(--bg-soft); padding: 1px 6px; border-radius: 4px; border: 1px solid var(--line-soft); font-size: 12px; }
+.boot pre { font-family: var(--font-mono); font-size: 12px; background: var(--bg-soft); border: 1px solid var(--line-soft); border-radius: var(--r-sm); padding: 12px; overflow:auto; }
+.boot-muted { color: var(--ink-mute); font-size: 12px; }
+.spin { width: 22px; height: 22px; border: 2.5px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-wrap { display: flex; align-items: center; gap: 12px; max-width: 1440px; margin: 80px auto; padding: 0 32px; color: var(--ink-mute); font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; }
+
+@media (max-width: 900px) {
+  .form-grid { grid-template-columns: 1fr; }
+  .evt-hd { grid-template-columns: 1fr; }
+  .evt-hd-r { align-items: flex-start; }
+  .prog { grid-template-columns: 1fr; }
+  .prog-pct { border-right: 0; border-bottom: 1px solid var(--line); padding: 0 0 12px; flex-direction: row; gap: 12px; }
+  .evt-card { grid-template-columns: auto 1fr; }
+  .evt-card-stat { grid-column: 2; align-items: flex-start; }
+  .tsk { grid-template-columns: auto 1fr; }
+  .tsk-marker { grid-column: 2; align-items: flex-start; text-align: left; min-width: 0; }
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<!-- Datos del flujo (áreas, etapas, tareas, hitos) -->
+<script>
+// Datos de la carta Gantt — flujo operativo eventos de experiencia
+window.GANTT_DATA = (function () {
+  const AREAS = {
+    comercial:    { label: 'Ventas',                  color: 'oklch(0.55 0.13 264)' },
+    facturacion:  { label: 'Facturación y Cobranza',  color: 'oklch(0.55 0.13 130)' },
+    finanzas:     { label: 'Finanzas',                color: 'oklch(0.55 0.13 170)' },
+    contabilidad: { label: 'Contabilidad',            color: 'oklch(0.55 0.13 295)' },
+    logistica:    { label: 'Logística',               color: 'oklch(0.55 0.13 210)' },
+    bodega:       { label: 'Bodega',                  color: 'oklch(0.55 0.13 70)'  },
+    mesa:         { label: 'Mesa de Ayuda',           color: 'oklch(0.55 0.13 35)'  },
+    compras:      { label: 'Compras',                 color: 'oklch(0.55 0.13 325)' },
+    marketing:    { label: 'Marketing',               color: 'oklch(0.55 0.13 0)'   },
+  };
+  const STAGES = [
+    { id: 'pre',    n: '0',  label: 'Cotización y negociación', sub: 'previo · Ventas' },
+    { id: 'cierre', n: '1',  label: 'Venta y cierre comercial', sub: 'Día 0 · Ventas' },
+    { id: 'val',    n: '2',  label: 'Validación interna',       sub: 'Contabilidad · NV como receta' },
+    { id: 'pago',   n: '3',  label: 'Forma de pago',            sub: 'Facturación y Cobranza' },
+    { id: 'plan',   n: '4',  label: 'Planificación del evento', sub: 'multi-área' },
+    { id: 'exec',   n: '5',  label: 'Ejecución',                sub: 'Ventas + Mesa de Ayuda en sitio' },
+    { id: 'retiro', n: '6',  label: 'Retiro y recepción',       sub: 'Logística retira · Bodega recibe · D+1' },
+    { id: 'cierreA',n: '7',  label: 'Cierre administrativo',    sub: 'Conciliación D+1 / D+2 · Cobranza crédito D+30' },
+  ];
+  const TASKS = [
+    { id: 't01', stage: 'pre', area: 'comercial', label: 'Generar cotización',         desc: 'Ventas prepara propuesta económica y técnica para el cliente.', start: 0, end: 0, pago: 'ambos' },
+    { id: 't02', stage: 'pre', area: 'comercial', label: 'Negociación con cliente',    desc: 'Iteración de propuesta y alcance hasta llegar a acuerdo.', start: 0, end: 0, pago: 'ambos', prereq: ['t01'] },
+    { id: 't03', stage: 'pre', area: 'comercial', label: 'Definir forma de pago',      desc: 'Acordar con cliente si la operación será Contado o Crédito. Se define ANTES del cierre comercial.', start: 0, end: 0, pago: 'ambos', prereq: ['t02'] },
+    { id: 't04', stage: 'cierre', area: 'comercial', label: 'Recibir cotización aprobada',     desc: 'Cliente confirma cotización por escrito.', start: 0, end: 0, pago: 'ambos', prereq: ['t03'] },
+    { id: 't05', stage: 'cierre', area: 'comercial', label: 'Envío de NV a Contabilidad',      desc: 'Ventas envía la Nota de Venta a Contabilidad para revisión. La NV es la receta que dirige toda la operatoria del evento, por lo que debe estar completa.', start: 0, end: 0, pago: 'ambos', prereq: ['t04'] },
+    { id: 't06', stage: 'cierre', area: 'comercial', label: 'Envío de contrato y firma cliente', desc: 'Ventas envía el contrato al cliente y se asegura de que sea firmado. Sin firma no avanza a la siguiente etapa.', start: 0, end: 0, pago: 'ambos', prereq: ['t04'] },
+    { id: 't11', stage: 'val', area: 'contabilidad', label: 'Revisar NV (receta de la operación)', desc: 'Contabilidad revisa que la Nota de Venta esté completa: alcance, productos, anfitriones, gráficas, fechas, condiciones, contrato firmado y datos de facturación. Si falta cualquier dato, la NV se devuelve a Ventas para completar.', start: 1, end: 1, pago: 'ambos', prereq: ['t05'] },
+    { id: 't11b',stage: 'val', area: 'comercial',    label: 'Completar NV si vuelve de Contabilidad', desc: 'Si Contabilidad detecta información faltante en la NV, Ventas debe completarla y reenviarla. Este ciclo se mantiene hasta que la NV esté completa.', start: 1, end: 2, pago: 'ambos', prereq: ['t11'] },
+    { id: 't12', stage: 'val', area: 'contabilidad', label: 'Aprobar NV y validar factibilidad',  desc: 'Una vez que la NV está completa, Contabilidad la aprueba y se valida la factibilidad administrativa del evento. Sólo con NV aprobada se libera la operación al resto de las áreas (facturación, planificación, compras).', start: 2, end: 2, pago: 'ambos', prereq: ['t11b'] },
+    { id: 't07', stage: 'pago', area: 'facturacion', label: 'Emitir factura post OC',           desc: 'Facturación y Cobranza emite la factura una vez que la NV está aprobada por Contabilidad (Contado).', start: 2, end: 2, pago: 'contado', prereq: ['t12'] },
+    { id: 't08', stage: 'pago', area: 'facturacion', label: 'Enviar factura al cliente',        desc: 'Facturación y Cobranza envía la factura al cliente con instrucciones de pago.', start: 2, end: 2, pago: 'contado', prereq: ['t07'] },
+    { id: 't09', stage: 'pago', area: 'comercial',   label: 'Gestión de cobranza',              desc: 'En modalidad Contado la gestión de cobranza la realiza el Vendedor: da seguimiento directo al cliente para asegurar el pago. Cierre obligatorio a −72h. Facturación y Cobranza concilia diariamente para detectar el pago.', start: 2, end: 4, pago: 'contado', prereq: ['t08'] },
+    { id: 't09b',stage: 'pago', area: 'facturacion', label: 'Conciliación diaria de pagos',     desc: 'Facturación y Cobranza concilia diariamente los pagos recibidos. Es el mecanismo que detecta el pago del cliente y confirma el corte a −72h. Sin detección a −72h se activa el bloqueo.', start: 2, end: 4, pago: 'contado', prereq: ['t07'] },
+    { id: 't10',  stage: 'pago', area: 'finanzas',    label: 'Validar / aprobar crédito',        desc: 'Crédito: Finanzas analiza y aprueba el crédito. La factura se emite después del evento.', start: 2, end: 3, pago: 'credito', prereq: ['t12'] },
+    { id: 't10b', stage: 'pago', area: 'contabilidad', label: 'Validación contable del crédito',   desc: 'Contabilidad valida el registro contable de la operación a crédito en paralelo a la aprobación de Finanzas. Confirma cómo se reconocerá contablemente y deja preparado el asiento para la facturación post-evento.', start: 2, end: 3, pago: 'credito', prereq: ['t12'] },
+    { id: 't_vta_insumos', stage: 'plan', area: 'comercial', label: 'Definir insumos y activos a comprar', desc: 'El Vendedor lee la NV e identifica los insumos y los activos no existentes que hay que comprar para el evento. Pasa el listado a Compras para que emita las OCs correspondientes.', start: 2, end: 2, pago: 'ambos', prereq: ['t12'] },
+    { id: 't_mesa_def',    stage: 'plan', area: 'mesa',      label: 'Definir anfitriones y técnicos',      desc: 'Mesa de Ayuda decide qué anfitriones y técnicos cubrirán el evento y pasa el detalle a Compras para que emita las OCs.', start: 2, end: 2, pago: 'ambos', prereq: ['t12'] },
+    { id: 't_log_def',     stage: 'plan', area: 'logistica', label: 'Definir proveedor de transporte/servicios',  desc: 'Logística define con qué proveedor de transporte y servicios externos operará. Pasa el detalle a Compras para que emita la OC respectiva.', start: 2, end: 2, pago: 'ambos', prereq: ['t12'] },
+    { id: 't21b', stage: 'plan', area: 'compras', label: 'Emitir OCs (servicios e insumos)', desc: 'Compras emite las órdenes de compra a partir de los inputs recibidos: anfitriones y técnicos (Mesa), transporte y servicios logísticos (Logística), insumos y activos no existentes (Vendedor sobre la NV). Sin OC nada se confirma.', start: 2, end: 3, pago: 'ambos', prereq: ['t_mesa_def','t_log_def','t_vta_insumos'] },
+    { id: 't20',  stage: 'plan', area: 'compras', label: 'Gestionar insumos',                desc: 'Compra y seguimiento de los consumibles e insumos del evento (definidos por el Vendedor en la NV).', start: 2, end: 4, pago: 'ambos', prereq: ['t21b'] },
+    { id: 't21',  stage: 'plan', area: 'compras', label: 'Gestionar activos no existentes',  desc: 'Adquisición o arriendo de activos que no están en bodega (definidos por el Vendedor en la NV).', start: 2, end: 4, pago: 'ambos', prereq: ['t21b'] },
+    { id: 't13', stage: 'plan', area: 'logistica', label: 'Preparar equipos / productos', desc: 'Selección y preparación del material a despachar.', start: 3, end: 5, pago: 'ambos', prereq: ['t12'] },
+    { id: 't16', stage: 'plan', area: 'logistica', label: 'Coordinar retiro pre-evento',  desc: 'Agendar retiro post-evento desde la planificación.', start: 4, end: 4, pago: 'ambos', prereq: ['t12'] },
+    { id: 't14', stage: 'plan', area: 'logistica', label: 'Guía de salida',               desc: 'Documento formal de despacho con detalle de activos.', start: 5, end: 5, pago: 'ambos', prereq: ['t13'] },
+    { id: 't15', stage: 'plan', area: 'logistica', label: 'Coordinar despacho',           desc: 'Definir ruta, transporte y ventana horaria. Requiere OC de transporte emitida.', start: 6, end: 6, pago: 'ambos', prereq: ['t14','t21b'] },
+    { id: 't17', stage: 'plan', area: 'mesa', label: 'Coordinar anfitriones',        desc: 'Convocar, briefing y confirmación de anfitriones. Requiere OC emitida.', start: 3, end: 5, pago: 'ambos', prereq: ['t21b'] },
+    { id: 't19', stage: 'plan', area: 'mesa', label: 'Coordinar técnicos y montaje', desc: 'Asignación y briefing del equipo técnico, plan de montaje, layout y tiempos. Requiere OC emitida.', start: 3, end: 6, pago: 'ambos', prereq: ['t21b'] },
+    { id: 't_bod_recep', stage: 'plan', area: 'bodega', label: 'Recepción de insumos y activos (D−1)', desc: 'Bodega recibe físicamente los insumos y activos no existentes que adquirió Compras. Plazo máximo: el día anterior al evento (Día 6 = D−1). Sin recepción, el montaje queda en riesgo.', start: 4, end: 6, pago: 'ambos', prereq: ['t20','t21'] },
+    { id: 't_orq', stage: 'plan', area: 'comercial', label: 'Orquestar el evento', desc: 'El Vendedor es el dueño del evento: hace seguimiento a todas las coordinaciones y se asegura de que las cosas ocurran a tiempo. Es el punto único de contacto con el cliente y entre áreas.', start: 2, end: 6, pago: 'ambos', prereq: ['t12'] },
+    { id: 't22', stage: 'plan', area: 'finanzas', label: 'Pago a proveedores', desc: 'Finanzas ejecuta pagos programados a proveedores del evento.', start: 3, end: 6, pago: 'ambos', prereq: ['t21b'] },
+    { id: 't23', stage: 'plan', area: 'finanzas', label: 'Revisión de pagos',  desc: 'Conciliación de pagos a proveedores vs presupuesto del evento.', start: 5, end: 6, pago: 'ambos', prereq: ['t22'] },
+    { id: 't24', stage: 'plan', area: 'marketing', label: 'Brief y coordinación foto / video', desc: 'Marketing hace el briefing creativo, coordina quién graba/fotografía el evento, y posteriormente coordina la entrega del material y su postproducción.', start: 3, end: 6, pago: 'ambos', prereq: ['t21b'] },
+    { id: 't25', stage: 'plan', area: 'marketing', label: 'Ploteo y gráfica', desc: 'Marketing diseña la gráfica, manda a imprimir y coordina con Ventas (o con el anfitrión) para que se instale en el lugar del evento.', start: 5, end: 6, pago: 'ambos', prereq: ['t12'] },
+    { id: 't_go', stage: 'plan', area: 'facturacion', label: 'Confirmación go / no-go (−72h)', desc: 'A −72h del evento, Facturación y Cobranza confirma la ejecución del evento. Para Contado se apoya en su conciliación diaria de pagos; para Crédito, en la aprobación previa de Finanzas. Sin confirmación, el evento no se ejecuta.', start: 4, end: 4, pago: 'ambos', prereq: ['t12'] },
+    { id: 't26', stage: 'exec', area: 'mesa',      label: 'Montaje',                          desc: 'El equipo técnico asignado por Mesa de Ayuda realiza el montaje en sitio durante la mañana del evento.', start: 7, end: 7, pago: 'ambos', prereq: ['t15','t_go','t_bod_recep'] },
+    { id: 't27', stage: 'exec', area: 'comercial', label: 'Validación en terreno',           desc: 'El Vendedor revisa en sitio que el montaje, equipos, anfitriones, gráfica y condiciones generales estén correctamente dispuestos antes del inicio del evento.', start: 7, end: 7, pago: 'ambos', prereq: ['t26'] },
+    { id: 't28', stage: 'exec', area: 'comercial', label: 'Soporte durante el evento',        desc: 'Ventas opera el evento en sitio: lidera la operación, coordina con los técnicos de Mesa de Ayuda y resuelve los requerimientos operativos en tiempo real.', start: 7, end: 7, pago: 'ambos', prereq: ['t27'] },
+    { id: 't_cont',stage: 'exec', area: 'comercial', label: 'Atender contingencias del cliente', desc: 'El Vendedor atiende cualquier contingencia o solicitud adicional del cliente, coordinando con Mesa de Ayuda para resolver sin afectar la operación.', start: 7, end: 7, pago: 'ambos', prereq: ['t27'] },
+    { id: 't29', stage: 'retiro', area: 'logistica', label: 'Ejecutar retiro',          desc: 'Desmontaje y retiro de equipos desde el sitio.', start: 8, end: 8, pago: 'ambos', prereq: ['t16'] },
+    { id: 't30', stage: 'retiro', area: 'bodega',    label: 'Recepción y verificación post-evento', desc: 'Bodega recibe los equipos retornados y verifica el inventario contra la guía de salida. Debe ocurrir en D+1 (Día 8).', start: 8, end: 8, pago: 'ambos', prereq: ['t29'] },
+    { id: 't31', stage: 'retiro', area: 'marketing', label: 'Subir a RRSS',             desc: 'Publicación de contenido capturado durante el evento.', start: 8, end: 9, pago: 'ambos' },
+    { id: 't32', stage: 'cierreA', area: 'contabilidad', label: 'Conciliación del evento', desc: 'Durante los 2 días posteriores al evento (D+1 y D+2) Contabilidad consolida los resultados: revisión de gastos efectivos vs presupuesto y cálculo del margen final. Aplica en ambas modalidades.', start: 8, end: 9, pago: 'ambos', prereq: ['t30'] },
+    { id: 't33',  stage: 'cierreA', area: 'facturacion',  label: 'Emitir factura (D+1)',          desc: 'Crédito: Facturación y Cobranza emite y envía la factura al día siguiente del evento (D+1).', start: 8, end: 8, pago: 'credito', prereq: ['t30'] },
+    { id: 't33b', stage: 'cierreA', area: 'contabilidad', label: 'Registro contable de factura', desc: 'Crédito: Contabilidad registra la factura emitida y la concilia contra la NV original.', start: 8, end: 9, pago: 'credito', prereq: ['t33'] },
+    { id: 't34',  stage: 'cierreA', area: 'facturacion',  label: 'Cobranza a 30 días (D+30)',      desc: 'Crédito: la factura emitida en D+1 vence a 30 días. Facturación y Cobranza gestiona el cobro en línea separada.', start: 11, end: 11, pago: 'credito', prereq: ['t33'] },
+  ];
+  const MILESTONES = [
+    { id: 'm00', day: 0, label: 'Cierre comercial', kind: 'normal', pago: 'ambos', desc: 'NV enviada a Contabilidad, contrato firmado y forma de pago definida.' },
+    { id: 'm0a', day: 6, label: 'Bodega · D−1', kind: 'normal', pago: 'ambos', desc: 'Bodega debe tener recibidos los insumos y activos no existentes.' },
+    { id: 'm01', day: 4, label: '−72h · pago + go/no-go', kind: 'critico', pago: 'ambos', desc: 'Facturación y Cobranza detecta el pago y confirma la ejecución.' },
+    { id: 'm02', day: 7, label: 'EVENTO',   kind: 'evento',  pago: 'ambos', desc: 'Día del evento.' },
+    { id: 'm03', day: 8, label: 'Recepción · D+1', kind: 'normal',  pago: 'ambos', desc: 'Recepción y verificación de equipos retornados.' },
+    { id: 'm04', day: 11, label: 'Cobranza · D+30', kind: 'normal', pago: 'credito', desc: 'Vencimiento de la factura a crédito.' },
+  ];
+  return { AREAS, STAGES, TASKS, MILESTONES, TOTAL_DAYS: 12, EVENT_DAY: 7, CLOSE_DAY: 0 };
+})();
+</script>
+
+<!-- Librerías desde CDN -->
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<!-- Configuración del proyecto Supabase -->
+<script src="supabase-config.js"></script>
+
+<!-- App -->
+<script type="text/babel" data-presets="react">
+const { useState: useS, useEffect: useE, useMemo: useM, useRef: useR } = React;
+
+// ---------- Supabase client ----------
+const CFG = window.SUPABASE_CONFIG || {};
+const CONFIGURED = CFG.url && CFG.anonKey && !/TU-PROYECTO|TU-ANON-KEY/.test(CFG.url + CFG.anonKey);
+const sb = CONFIGURED ? window.supabase.createClient(CFG.url, CFG.anonKey) : null;
+const TABLE = 'eventos';
+
+function uid() { return 'e' + Math.random().toString(36).slice(2, 9); }
+
+// ---------- date helpers ----------
+function fmtDate(iso, opts) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('es-CL', opts || { day: '2-digit', month: 'short', year: 'numeric' });
+}
+function fmtDayMonth(iso) { return new Date(iso).toLocaleDateString('es-CL', { day: '2-digit', month: 'short' }); }
+function fmtRel(iso) {
+  if (!iso) return '';
+  const d = new Date(iso); const now = new Date();
+  const diff = Math.round((now - d) / 60000);
+  if (diff < 1) return 'ahora';
+  if (diff < 60) return `hace ${diff} min`;
+  if (diff < 24 * 60) return `hace ${Math.round(diff / 60)}h`;
+  return fmtDate(iso, { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+}
+function todayLocal() { const d = new Date(); d.setHours(0, 0, 0, 0); return d; }
+function daysBetween(a, b) {
+  const A = new Date(a); A.setHours(0, 0, 0, 0);
+  const B = new Date(b); B.setHours(0, 0, 0, 0);
+  return Math.round((B - A) / 86400000);
+}
+function taskDate(eventDateISO, taskDay) {
+  const d = new Date(eventDateISO); d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() + (taskDay - 7));
+  return d;
+}
+function applicableTasks(paymentMode) {
+  return window.GANTT_DATA.TASKS.filter(t => t.pago === 'ambos' || t.pago === paymentMode);
+}
+function statusFor(task, event) {
+  const today = todayLocal();
+  const st = event.taskStatus?.[task.id];
+  if (st?.done) return { kind: 'done', st };
+  const startD = taskDate(event.eventDate, task.start);
+  const endD = taskDate(event.eventDate, task.end);
+  if (today > endD) return { kind: 'late', startD, endD, st };
+  if (today >= startD) return { kind: 'now', startD, endD, st };
+  return { kind: 'todo', startD, endD, st };
+}
+
+// ---------- App ----------
+function App() {
+  const [events, setEvents] = useS({});
+  const [loading, setLoading] = useS(true);
+  const [loadErr, setLoadErr] = useS(null);
+  const [conn, setConn] = useS('connecting'); // connecting | live | saving | error
+  const [currentRole, setCurrentRole] = useS(() => {
+    try { return localStorage.getItem('dreamtec_role') || 'comercial'; } catch (e) { return 'comercial'; }
+  });
+  const [view, setView] = useS('list');
+  const [selectedEventId, setSelectedEventId] = useS(null);
+  const [openStages, setOpenStages] = useS({});
+
+  useE(() => { try { localStorage.setItem('dreamtec_role', currentRole); } catch (e) {} }, [currentRole]);
+
+  // ----- carga inicial + realtime -----
+  async function fetchAll() {
+    const { data, error } = await sb.from(TABLE).select('id, data');
+    if (error) { setLoadErr(error.message); setConn('error'); setLoading(false); return; }
+    const map = {};
+    (data || []).forEach(r => { map[r.id] = { ...(r.data || {}), id: r.id }; });
+    setEvents(map);
+    setLoading(false);
+    setConn(c => (c === 'saving' ? c : 'live'));
+  }
+
+  useE(() => {
+    if (!sb) { setLoading(false); return; }
+    let alive = true;
+    (async () => { if (alive) await fetchAll(); })();
+    const channel = sb.channel('eventos-rt')
+      .on('postgres_changes', { event: '*', schema: 'public', table: TABLE }, () => { if (alive) fetchAll(); })
+      .subscribe((s) => { if (alive && s === 'SUBSCRIBED') setConn(c => (c === 'error' ? c : 'live')); });
+    return () => { alive = false; sb.removeChannel(channel); };
+  }, []);
+
+  // ----- escritura -----
+  async function persistEvent(id, eventObj) {
+    setConn('saving');
+    const { id: _omit, ...data } = eventObj; // id va en columna, no dentro de data
+    const { error } = await sb.from(TABLE).upsert({ id, data });
+    if (error) { setConn('error'); alert('No se pudo guardar el cambio: ' + error.message); }
+    else { setConn('live'); }
+  }
+
+  function createEvent(d) {
+    const id = uid();
+    const event = {
+      id, name: d.name, client: d.client, eventDate: d.eventDate, paymentMode: d.paymentMode,
+      seller: d.seller, venue: d.venue, attendees: d.attendees, amount: d.amount, notes: d.notes,
+      createdAt: new Date().toISOString(), taskStatus: {}
+    };
+    setEvents(s => ({ ...s, [id]: event }));
+    setView('detail'); setSelectedEventId(id);
+    setOpenStages(s => ({ ...s, [id]: ['pre', 'cierre'] }));
+    persistEvent(id, event);
+  }
+
+  function toggleTask(eventId, taskId) {
+    setEvents(s => {
+      const ev = s[eventId]; if (!ev) return s;
+      const cur = ev.taskStatus?.[taskId];
+      const newStatus = cur?.done
+        ? { ...ev.taskStatus, [taskId]: { done: false } }
+        : { ...ev.taskStatus, [taskId]: { done: true, by: currentRole, at: new Date().toISOString() } };
+      const newEv = { ...ev, taskStatus: newStatus };
+      persistEvent(eventId, newEv);
+      return { ...s, [eventId]: newEv };
+    });
+  }
+
+  async function deleteEvent(id) {
+    if (!confirm('¿Eliminar este evento del tablero? Se borra para todas las áreas.')) return;
+    setEvents(s => { const ne = { ...s }; delete ne[id]; return ne; });
+    setView('list'); setSelectedEventId(null);
+    setConn('saving');
+    const { error } = await sb.from(TABLE).delete().eq('id', id);
+    setConn(error ? 'error' : 'live');
+    if (error) alert('No se pudo eliminar: ' + error.message);
+  }
+
+  function setStageOpen(eventId, stageId, open) {
+    setOpenStages(s => {
+      const cur = new Set(s[eventId] || []);
+      if (open) cur.add(stageId); else cur.delete(stageId);
+      return { ...s, [eventId]: Array.from(cur) };
+    });
+  }
+
+  const G = window.GANTT_DATA;
+  const eventsList = Object.values(events).sort((a, b) => new Date(a.eventDate) - new Date(b.eventDate));
+
+  if (!sb) return <ConfigScreen />;
+  if (loading) return (
+    <div className="loading-wrap"><span className="spin"></span> Conectando con la base de datos…</div>
+  );
+  if (loadErr) return <ErrorScreen msg={loadErr} onRetry={() => { setLoadErr(null); setLoading(true); fetchAll(); }} />;
+
+  const selected = selectedEventId ? events[selectedEventId] : null;
+
+  return (
+    <div className="app">
+      <TopBar role={currentRole} setRole={setCurrentRole} conn={conn} />
+
+      {view === 'list' && (
+        <EventsView
+          events={eventsList}
+          onOpen={(id) => { setView('detail'); setSelectedEventId(id); }}
+          onNew={() => setView('new')}
+          onDelete={deleteEvent}
+        />
+      )}
+
+      {view === 'new' && (
+        <NewEventView onSubmit={createEvent} onCancel={() => setView('list')} />
+      )}
+
+      {view === 'detail' && selected && (
+        <EventDetailView
+          event={selected}
+          role={currentRole}
+          openStages={openStages[selectedEventId] || []}
+          onBack={() => { setView('list'); setSelectedEventId(null); }}
+          onToggle={(taskId) => toggleTask(selectedEventId, taskId)}
+          onDelete={() => deleteEvent(selectedEventId)}
+          onStageOpen={(stageId, open) => setStageOpen(selectedEventId, stageId, open)}
+        />
+      )}
+
+      {view === 'detail' && !selected && (
+        <div className="evt-empty" style={{ marginTop: 24 }}>
+          <div className="evt-empty-h">Este evento ya no existe</div>
+          <p className="evt-empty-p">Puede que otra persona lo haya eliminado.</p>
+          <button className="btn btn-primary" onClick={() => { setView('list'); setSelectedEventId(null); }}>← Volver a eventos</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------- Config / error screens ----------
+function ConfigScreen() {
+  return (
+    <div className="boot">
+      <h1>Falta configurar Supabase</h1>
+      <p>Este tablero guarda los eventos en Supabase para que <strong>todas las áreas vean lo mismo en tiempo real</strong>. Edita <code>supabase-config.js</code> con los datos de tu proyecto:</p>
+      <pre>{`window.SUPABASE_CONFIG = {
+  url: "https://xxxx.supabase.co",
+  anonKey: "eyJ..."
+};`}</pre>
+      <p className="boot-muted">Los encuentras en Supabase → Project Settings → API. La <code>anon key</code> es pública por diseño; el acceso se controla con las políticas RLS de <code>supabase/schema.sql</code>.</p>
+    </div>
+  );
+}
+function ErrorScreen({ msg, onRetry }) {
+  return (
+    <div className="boot">
+      <h1>No se pudo conectar a la base de datos</h1>
+      <p>Detalle: <code>{msg}</code></p>
+      <p className="boot-muted">Verifica que ejecutaste <code>supabase/schema.sql</code> (tabla <code>eventos</code> + políticas RLS) y que la URL y anon key en <code>supabase-config.js</code> son correctas.</p>
+      <button className="btn btn-primary" onClick={onRetry}>Reintentar</button>
+    </div>
+  );
+}
+
+// ---------- Top bar ----------
+function TopBar({ role, setRole, conn }) {
+  const G = window.GANTT_DATA;
+  const connLabel = { connecting: 'Conectando', live: 'En vivo', saving: 'Guardando…', error: 'Sin conexión' }[conn] || '';
+  const connCls = 'tb-conn' + (conn === 'live' ? ' live' : conn === 'saving' ? ' saving' : conn === 'error' ? ' error' : '');
+  return (
+    <div className="topbar">
+      <img src="assets/dreamtec-logo.png" alt="Dreamtec" className="tb-logo" />
+      <div className="tb-div"></div>
+      <div className="tb-tag">Tablero operativo · Eventos</div>
+      <span className={connCls} title="Estado de la conexión en tiempo real con la base de datos">
+        <span className="tb-conn-dot"></span>{connLabel}
+      </span>
+      <div className="tb-spacer"></div>
+      <div className="role-sel">
+        <span className="role-sel-label">Soy de</span>
+        <select value={role} onChange={(e) => setRole(e.target.value)}>
+          {Object.entries(G.AREAS).map(([k, a]) => (<option key={k} value={k}>{a.label}</option>))}
+        </select>
+      </div>
+      <a className="nav-cta" href="index.html" title="Ver la Carta Gantt del flujo completo">
+        <span className="nav-cta-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 6h10"></path><path d="M8 12h12"></path><path d="M4 18h8"></path>
+            <circle cx="4" cy="6" r="1.2" fill="currentColor"></circle>
+            <circle cx="8" cy="12" r="1.2" fill="currentColor"></circle>
+            <circle cx="4" cy="18" r="1.2" fill="currentColor"></circle>
+          </svg>
+        </span>
+        <span className="nav-cta-text">
+          <span className="nav-cta-eye">Ver</span>
+          <span className="nav-cta-label">Carta Gantt</span>
+        </span>
+        <span className="nav-cta-arrow">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M5 12h14"></path><path d="M13 6l6 6-6 6"></path>
+          </svg>
+        </span>
+      </a>
+    </div>
+  );
+}
+
+// ---------- Events list ----------
+function EventsView({ events, onOpen, onNew, onDelete }) {
+  return (
+    <>
+      <div className="ph">
+        <div className="ph-l">
+          <div className="ph-eye">Eventos activos</div>
+          <h1 className="ph-title">Tablero operativo</h1>
+          <p className="ph-sub">Cada evento despliega el checklist completo de las 8 etapas. Cualquier área puede marcar sus tareas como resueltas y todos ven el avance en tiempo real.</p>
+        </div>
+        <button className="btn btn-primary" onClick={onNew}><span style={{ fontWeight: 700 }}>+</span> Nuevo evento</button>
+      </div>
+      {events.length === 0 ? (
+        <div className="evt-empty">
+          <div className="evt-empty-h">Aún no hay eventos cargados</div>
+          <p className="evt-empty-p">El vendedor crea un evento al cerrar la venta. Desde ese momento, el checklist queda disponible para todas las áreas.</p>
+          <button className="btn btn-primary" onClick={onNew}>+ Crear el primero</button>
+        </div>
+      ) : (
+        <div className="evts">
+          {events.map(ev => <EventCard key={ev.id} event={ev} onClick={() => onOpen(ev.id)} onDelete={() => onDelete(ev.id)} />)}
+        </div>
+      )}
+    </>
+  );
+}
+
+function EventCard({ event, onClick, onDelete }) {
+  const G = window.GANTT_DATA;
+  const tasks = applicableTasks(event.paymentMode);
+  const done = tasks.filter(t => event.taskStatus?.[t.id]?.done).length;
+  const total = tasks.length;
+  const pct = total ? Math.round((done / total) * 100) : 0;
+  const days = daysBetween(todayLocal(), new Date(event.eventDate));
+  const late = tasks.filter(t => statusFor(t, event).kind === 'late').length;
+  const badge = (() => {
+    if (pct === 100) return { kind: 'ok', text: 'Completo' };
+    if (late > 0) return { kind: 'crit', text: `${late} atrasada${late > 1 ? 's' : ''}` };
+    if (days < 0) return { kind: 'warn', text: 'Post-evento' };
+    if (days <= 3) return { kind: 'crit', text: 'Corte −72h' };
+    if (days <= 7) return { kind: 'warn', text: `D−${days}` };
+    return { kind: 'ok', text: `D−${days}` };
+  })();
+  const barCls = pct === 100 ? 'ok' : (late > 0 ? 'crit' : '');
+  const date = new Date(event.eventDate);
+  return (
+    <div className="evt-card" onClick={onClick} role="button" tabIndex={0}
+         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } }}>
+      <div className="evt-card-date">
+        <div className="evt-card-date-d">{String(date.getDate()).padStart(2, '0')}</div>
+        <div className="evt-card-date-m">{date.toLocaleDateString('es-CL', { month: 'short' }).replace('.', '')}</div>
+      </div>
+      <div className="evt-card-body">
+        <div className="evt-card-top">
+          <h3 className="evt-card-title">{event.name || 'Evento sin nombre'}</h3>
+          <span className="evt-card-client">{event.client || '—'}</span>
+        </div>
+        <div className="evt-card-meta">
+          <span>{event.paymentMode === 'contado' ? 'Contado' : 'Crédito'}</span>
+          {event.venue && <span>· {event.venue}</span>}
+          {event.seller && <span>· {event.seller}</span>}
+          {event.attendees && <span>· {event.attendees} pax</span>}
+        </div>
+      </div>
+      <div className="evt-card-stat">
+        <span className={'evt-card-badge ' + badge.kind}>{badge.text}</span>
+        <div className="evt-card-pct">{pct}%</div>
+        <div className="evt-card-bar"><div className={'evt-card-bar-fill ' + barCls} style={{ width: pct + '%' }}></div></div>
+        <div className="evt-card-pct-l">{done}/{total} tareas</div>
+      </div>
+      <button className="evt-card-del" onClick={(e) => { e.stopPropagation(); onDelete(); }} title="Eliminar evento" aria-label="Eliminar evento">×</button>
+    </div>
+  );
+}
+
+// ---------- New event form ----------
+function NewEventView({ onSubmit, onCancel }) {
+  const [name, setName] = useS('');
+  const [client, setClient] = useS('');
+  const [eventDate, setEventDate] = useS('');
+  const [paymentMode, setPaymentMode] = useS('contado');
+  const [seller, setSeller] = useS('');
+  const [venue, setVenue] = useS('');
+  const [attendees, setAttendees] = useS('');
+  const [amount, setAmount] = useS('');
+  const [notes, setNotes] = useS('');
+  function submit(e) {
+    e.preventDefault();
+    if (!name.trim() || !eventDate) return;
+    onSubmit({ name: name.trim(), client: client.trim(), eventDate, paymentMode, seller: seller.trim(), venue: venue.trim(), attendees, amount, notes: notes.trim() });
+  }
+  return (
+    <>
+      <div className="detail-bar">
+        <button className="btn btn-sm btn-ghost" onClick={onCancel}>← Volver</button>
+        <span className="crumb">Eventos / <span className="crumb-cur">Nuevo evento</span></span>
+      </div>
+      <div className="ph">
+        <div className="ph-l">
+          <div className="ph-eye">Nuevo evento</div>
+          <h1 className="ph-title">Agregar al tablero</h1>
+          <p className="ph-sub">Al guardar, el checklist queda disponible para todas las áreas. La fecha del evento determina el cronograma: <strong>Día 0</strong> cierre comercial; <strong>−72h</strong> pago + go/no-go; <strong>D−1</strong> recepción de insumos/activos en Bodega; <strong>D+1</strong> verificación post-evento.</p>
+        </div>
+      </div>
+      <form className="form" onSubmit={submit}>
+        <div className="form-grid">
+          <div className="form-row full">
+            <label htmlFor="name">Nombre del evento</label>
+            <input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej: Lanzamiento Línea Premium" required />
+          </div>
+          <div className="form-row">
+            <label htmlFor="client">Cliente</label>
+            <input id="client" value={client} onChange={(e) => setClient(e.target.value)} placeholder="Ej: Cervecería XYZ" />
+          </div>
+          <div className="form-row">
+            <label htmlFor="seller">Vendedor responsable</label>
+            <input id="seller" value={seller} onChange={(e) => setSeller(e.target.value)} placeholder="Tu nombre" />
+          </div>
+          <div className="form-row">
+            <label htmlFor="eventDate">Fecha del evento</label>
+            <input id="eventDate" type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} required />
+          </div>
+          <div className="form-row">
+            <label>Forma de pago</label>
+            <div className="form-pay">
+              <button type="button" className={'form-pay-opt' + (paymentMode === 'contado' ? ' on' : '')} onClick={() => setPaymentMode('contado')}>
+                <span className="form-pay-opt-r"></span>Contado
+              </button>
+              <button type="button" className={'form-pay-opt' + (paymentMode === 'credito' ? ' on' : '')} onClick={() => setPaymentMode('credito')}>
+                <span className="form-pay-opt-r"></span>Crédito
+              </button>
+            </div>
+          </div>
+          <div className="form-row">
+            <label htmlFor="venue">Lugar</label>
+            <input id="venue" value={venue} onChange={(e) => setVenue(e.target.value)} placeholder="Dirección o nombre del recinto" />
+          </div>
+          <div className="form-row">
+            <label htmlFor="attendees">Asistentes esperados</label>
+            <input id="attendees" type="number" value={attendees} onChange={(e) => setAttendees(e.target.value)} placeholder="0" min="0" />
+          </div>
+          <div className="form-row full">
+            <label htmlFor="amount">Monto (opcional)</label>
+            <input id="amount" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="CLP" />
+          </div>
+          <div className="form-row full">
+            <label htmlFor="notes">Notas</label>
+            <textarea id="notes" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Detalles relevantes, requerimientos especiales, etc." />
+          </div>
+        </div>
+        <div className="form-foot">
+          <button type="button" className="btn" onClick={onCancel}>Cancelar</button>
+          <button type="submit" className="btn btn-primary">Crear evento</button>
+        </div>
+      </form>
+    </>
+  );
+}
+
+// ---------- Event detail ----------
+function EventDetailView({ event, role, openStages, onBack, onToggle, onDelete, onStageOpen }) {
+  const G = window.GANTT_DATA;
+  const tasks = useM(() => applicableTasks(event.paymentMode), [event.paymentMode]);
+  const days = daysBetween(todayLocal(), new Date(event.eventDate));
+  const doneN = tasks.filter(t => event.taskStatus?.[t.id]?.done).length;
+  const pct = tasks.length ? Math.round((doneN / tasks.length) * 100) : 0;
+
+  const byArea = useM(() => {
+    const m = {};
+    tasks.forEach(t => {
+      m[t.area] = m[t.area] || { total: 0, done: 0 };
+      m[t.area].total += 1;
+      if (event.taskStatus?.[t.id]?.done) m[t.area].done += 1;
+    });
+    return m;
+  }, [tasks, event.taskStatus]);
+
+  const alerts = useM(() => {
+    const out = [];
+    const nvDone = event.taskStatus?.['t12']?.done;
+    const nvTask = tasks.find(t => t.id === 't12');
+    if (nvTask && !nvDone) {
+      const today = todayLocal();
+      const due = taskDate(event.eventDate, nvTask.end);
+      if (today >= due) out.push({ kind: 'crit', text: <><strong>NV no aprobada por Contabilidad.</strong> Sin esto, ninguna otra área puede avanzar.</> });
+    }
+    if (event.paymentMode === 'contado' && days <= 3 && days >= 0) {
+      const pagoDone = event.taskStatus?.['t09']?.done && event.taskStatus?.['t09b']?.done;
+      if (!pagoDone) out.push({ kind: 'crit', text: <><strong>Corte a −72h sin pago detectado.</strong> Sin confirmación, el evento no se ejecuta.</> });
+    }
+    if (days <= 3 && days >= 0 && !event.taskStatus?.['t_go']?.done) {
+      out.push({ kind: 'warn', text: <><strong>Facturación y Cobranza aún no confirma go / no-go.</strong> Plazo: −72h del evento.</> });
+    }
+    if (days === 1 && !event.taskStatus?.['t_bod_recep']?.done) {
+      out.push({ kind: 'crit', text: <><strong>Bodega aún no registra los insumos y activos comprados.</strong> Plazo: hoy (D−1).</> });
+    }
+    if (days === -1 && !event.taskStatus?.['t30']?.done) {
+      out.push({ kind: 'warn', text: <><strong>Bodega aún no registra recepción.</strong> Verificación debe ocurrir hoy (D+1).</> });
+    }
+    return out;
+  }, [event, tasks, days]);
+
+  const stages = G.STAGES;
+  const tasksByStage = useM(() => {
+    const m = {};
+    stages.forEach(s => m[s.id] = []);
+    tasks.forEach(t => { if (m[t.stage]) m[t.stage].push(t); });
+    return m;
+  }, [tasks]);
+  const isOpen = (sid) => openStages.includes(sid);
+
+  return (
+    <>
+      <div className="detail-bar">
+        <button className="btn btn-sm btn-ghost" onClick={onBack}>← Eventos</button>
+        <span className="crumb">Eventos / <span className="crumb-cur">{event.name}</span></span>
+        <div style={{ flex: 1 }}></div>
+        <button className="btn btn-sm btn-ghost" onClick={onDelete} title="Eliminar evento">Eliminar</button>
+      </div>
+
+      <div className="evt-hd">
+        <div className="evt-hd-l">
+          <div className="evt-hd-eye">Evento · {event.paymentMode === 'contado' ? 'Contado' : 'Crédito'}</div>
+          <h1 className="evt-hd-title">{event.name}</h1>
+          <div className="evt-hd-client">{event.client || 'Cliente sin especificar'}</div>
+          <div className="evt-hd-meta">
+            <span>Fecha · <strong>{fmtDate(event.eventDate)}</strong></span>
+            {event.venue && <span>· Lugar · <strong>{event.venue}</strong></span>}
+            {event.seller && <span>· Vendedor · <strong>{event.seller}</strong></span>}
+            {event.attendees && <span>· <strong>{event.attendees}</strong> pax</span>}
+          </div>
+        </div>
+        <div className="evt-hd-r">
+          <div className={'evt-countdown' + (days <= 3 && days >= 0 ? ' crit' : '')}>
+            <div className="evt-countdown-n">{days >= 0 ? `D−${days}` : `D+${Math.abs(days)}`}</div>
+            <div className="evt-countdown-l">{days === 0 ? 'es hoy' : (days > 0 ? 'para el evento' : 'post-evento')}</div>
+          </div>
+        </div>
+      </div>
+
+      {alerts.length > 0 && (
+        <div className="alerts">
+          {alerts.map((a, i) => (
+            <div key={i} className={'alert ' + a.kind}>
+              <span className="alert-icon"><span>!</span></span>
+              <div>{a.text}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="prog">
+        <div className="prog-pct">
+          <div className="prog-pct-n">{pct}%</div>
+          <div className="prog-pct-l">{doneN}/{tasks.length} tareas</div>
+        </div>
+        <div className="prog-areas">
+          {Object.entries(byArea).map(([k, v]) => {
+            const a = G.AREAS[k];
+            const p = v.total ? (v.done / v.total) * 100 : 0;
+            return (
+              <div key={k} className="prog-area">
+                <span className="prog-area-dot" style={{ background: a.color }}></span>
+                <span className="prog-area-name">{a.label}</span>
+                <div className="prog-area-bar"><div className="prog-area-bar-fill" style={{ width: p + '%', background: a.color }}></div></div>
+                <span className="prog-area-frac">{v.done}/{v.total}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="stages">
+        {stages.map(stage => {
+          const sTasks = tasksByStage[stage.id] || [];
+          if (sTasks.length === 0) return null;
+          const sDone = sTasks.filter(t => event.taskStatus?.[t.id]?.done).length;
+          const sPct = sTasks.length ? (sDone / sTasks.length) * 100 : 0;
+          const allDone = sDone === sTasks.length;
+          const open = isOpen(stage.id);
+          return (
+            <div key={stage.id} className={'stg' + (open ? ' open' : '')}>
+              <div className="stg-hd" onClick={() => onStageOpen(stage.id, !open)}>
+                <div className="stg-n">{stage.n}</div>
+                <div className="stg-titles">
+                  <div className="stg-title">{stage.label}</div>
+                  <div className="stg-sub">{stage.sub}</div>
+                </div>
+                <div className="stg-prog">
+                  <span className="stg-prog-frac">{sDone}/{sTasks.length}</span>
+                  <div className="stg-prog-bar"><div className={'stg-prog-bar-fill' + (allDone ? ' done' : '')} style={{ width: sPct + '%' }}></div></div>
+                </div>
+                <span className="stg-chev">›</span>
+              </div>
+              {open && (
+                <div className="stg-body">
+                  {sTasks.map(t => <TaskRow key={t.id} task={t} event={event} role={role} onToggle={() => onToggle(t.id)} />)}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
+function TaskRow({ task, event, role, onToggle }) {
+  const G = window.GANTT_DATA;
+  const area = G.AREAS[task.area];
+  const st = statusFor(task, event);
+  const done = st.kind === 'done';
+  const prereqDone = (task.prereq || []).every(pid => event.taskStatus?.[pid]?.done);
+  const locked = !done && !prereqDone;
+  const startD = taskDate(event.eventDate, task.start);
+  const endD = taskDate(event.eventDate, task.end);
+  const sameDay = task.start === task.end;
+  const dayRange = sameDay ? fmtDayMonth(startD) : `${fmtDayMonth(startD)} – ${fmtDayMonth(endD)}`;
+  let metaCls = 'tsk-meta-item';
+  let metaTxt = dayRange;
+  if (st.kind === 'late') { metaCls += ' late'; metaTxt = '⚠ atrasada · ' + dayRange; }
+  else if (st.kind === 'now') { metaCls += ' now'; metaTxt = '● en curso · ' + dayRange; }
+  return (
+    <div className={'tsk' + (done ? ' done' : '')}>
+      <button
+        className={'tsk-check' + (done ? ' on' : '') + (locked ? ' locked' : '')}
+        onClick={(e) => { e.preventDefault(); if (!locked || done) onToggle(); }}
+        title={locked ? 'Esperando que se completen las tareas previas' : (done ? 'Marcar como pendiente' : 'Marcar como hecho')}
+        aria-label="Marcar tarea"
+      ></button>
+      <div className="tsk-body">
+        <div className="tsk-top">
+          <span className="tsk-label">{task.label}</span>
+          <span className="tsk-area"><span className="tsk-area-dot" style={{ background: area.color }}></span>{area.label}</span>
+        </div>
+        {task.desc && <div className="tsk-desc">{task.desc}</div>}
+        <div className="tsk-meta">
+          <span className="tsk-day">D{task.start}{task.start !== task.end ? `–${task.end}` : ''}</span>
+          <span className={metaCls}>{metaTxt}</span>
+          {locked && <span className="tsk-meta-item">🔒 esperando prerequisitos</span>}
+        </div>
+      </div>
+      {done && (
+        <div className="tsk-marker">
+          <span className="tsk-marker-by">{G.AREAS[st.st.by]?.label || st.st.by}</span>
+          <span className="tsk-marker-when">{fmtRel(st.st.at)}</span>
+          <button className="tsk-marker-undo" onClick={onToggle}>deshacer</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+</script>
+</body>
+</html>
