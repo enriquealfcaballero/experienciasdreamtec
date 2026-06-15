@@ -76,6 +76,8 @@
   // ---------- modal ----------
   var overlay, mode = "login";
   function buildOverlay() {
+    var existing = document.getElementById("dtauth-ov");
+    if (existing) { overlay = existing; return; } // evita overlays duplicados
     overlay = document.createElement("div");
     overlay.id = "dtauth-ov";
     overlay.innerHTML = ''
@@ -232,14 +234,20 @@
     });
   }
   function onSignedIn(session) {
+    if (DT.profile || DT._loadingProfile) return; // evita doble carga (INITIAL_SESSION + getSession)
+    DT._loadingProfile = true;
     DT.user = session.user;
     try { DT.client.realtime.setAuth(session.access_token); } catch (e) {}
     loadProfile(session.user).then(function (profile) {
+      DT._loadingProfile = false;
       DT.profile = profile;
-      if (overlay) { overlay.remove(); overlay = null; }
+      var ovs = document.querySelectorAll("#dtauth-ov"); // quita TODOS los overlays
+      for (var i = 0; i < ovs.length; i++) ovs[i].remove();
+      overlay = null;
       showChip();
       fireReady();
     }).catch(function (err) {
+      DT._loadingProfile = false;
       // Perfil ausente: forzar salida con mensaje
       if (!overlay) buildOverlay();
       setMode("login");
