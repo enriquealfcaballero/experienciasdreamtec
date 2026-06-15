@@ -94,6 +94,7 @@
       + '    <div class="dtauth-field"><label>Contraseña</label><input name="password" type="password" autocomplete="current-password" placeholder="••••••••" minlength="6" required/></div>'
       + '    <button id="dtauth-submit" type="submit">Ingresar</button>'
       + '    <div class="dtauth-msg" id="dtauth-msg"></div>'
+      + '    <div id="dtauth-actions" style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"></div>'
       + '  </form>'
       + '  <p class="dtauth-hint">Al registrarte eliges tu área una sola vez; luego el tablero ya sabe qué tareas puedes aprobar.</p>'
       + '</div>';
@@ -113,7 +114,37 @@
     overlay.querySelector('input[name="password"]').setAttribute("autocomplete", m === "register" ? "new-password" : "current-password");
     setMsg("", "");
   }
-  function setMsg(t, cls) { var el = overlay.querySelector("#dtauth-msg"); el.textContent = t; el.className = "dtauth-msg " + (cls || ""); }
+  function setMsg(t, cls) { clearActions(); var el = overlay.querySelector("#dtauth-msg"); el.textContent = t; el.className = "dtauth-msg " + (cls || ""); }
+  function clearActions() { var a = overlay && overlay.querySelector("#dtauth-actions"); if (a) a.innerHTML = ""; }
+  function addAction(label, fn) {
+    var a = overlay && overlay.querySelector("#dtauth-actions"); if (!a) return;
+    var b = document.createElement("button"); b.type = "button"; b.className = "dtauth-tab";
+    b.style.cssText = "border:1px solid #d8d8e0;background:#fff;padding:7px 12px;border-radius:7px;cursor:pointer;font-size:12.5px;color:#2a2a2a;flex:none";
+    b.textContent = label; b.addEventListener("click", fn); a.appendChild(b);
+  }
+  function resendConfirmation(email) {
+    if (!email) return;
+    setMsg("Reenviando correo de confirmación…", "");
+    DT.client.auth.resend({ type: "signup", email: email, options: { emailRedirectTo: window.location.origin + window.location.pathname } })
+      .then(function (r) {
+        if (r.error) { setMsg(translateErr(r.error.message), "err"); }
+        else { setMsg("Listo: reenviamos el correo a " + email + ". Revisa tu bandeja y la carpeta de spam.", "ok"); }
+      });
+  }
+  function getUrlError() {
+    var out = {};
+    function parse(s) { if (!s) return; s.replace(/^[#?]/, "").split("&").forEach(function (kv) { var p = kv.split("="); if (p[0]) out[p[0]] = decodeURIComponent((p[1] || "").replace(/\+/g, " ")); }); }
+    parse(window.location.hash); parse(window.location.search);
+    return out;
+  }
+  function cleanUrl() { if (window.history && window.history.replaceState && (window.location.hash || window.location.search)) { try { window.history.replaceState({}, document.title, window.location.pathname); } catch (e) {} } }
+  function translateUrlErr(e) {
+    var d = (e.error_description || e.error || "").toLowerCase();
+    var c = (e.error_code || "").toLowerCase();
+    if (c.indexOf("otp_expired") !== -1 || d.indexOf("expired") !== -1) return "El enlace de confirmación expiró o ya se usó. Ingresa con tu correo y contraseña; si no puedes, pide un nuevo correo de confirmación.";
+    if (c.indexOf("access_denied") !== -1 || d.indexOf("access") !== -1) return "El enlace no es válido. Intenta confirmar de nuevo o regístrate otra vez.";
+    return "Hubo un problema al confirmar la cuenta: " + (e.error_description || e.error);
+  }
   function domainOk(email) {
     var d = (email.split("@")[1] || "").toLowerCase();
     return ALLOWED_DOMAINS.indexOf(d) !== -1;
@@ -143,7 +174,12 @@
     }
     p.then(function (res) {
       btn.disabled = false;
-      if (res.error) { setMsg(translateErr(res.error.message), "err"); return; }
+      if (res.error) {
+        var em = (res.error.message || "").toLowerCase();
+        setMsg(translateErr(res.error.message), "err");
+        if (em.indexOf("not confirmed") !== -1 || em.indexOf("not_confirmed") !== -1) addAction("Reenviar correo de confirmación", function () { resendConfirmation(email); });
+        return;
+      }
       if (!res.data.session) {
         // Confirmación por correo activada: no hay sesión hasta confirmar
         setMode("login");
@@ -159,9 +195,10 @@
     m = (m || "").toLowerCase();
     if (m.indexOf("dreamtec.cl") !== -1 || m.indexOf("ofimundo.cl") !== -1) return "Solo se permiten correos @dreamtec.cl o @ofimundo.cl.";
     if (m.indexOf("already registered") !== -1 || m.indexOf("already been registered") !== -1) return "Ese correo ya está registrado. Usa 'Ingresar'.";
-    if (m.indexOf("invalid login") !== -1 || m.indexOf("invalid credentials") !== -1) return "Correo o contraseña incorrectos.";
+    if (m.indexOf("invalid login") !== -1 || m.indexOf("invalid credentials") !== -1) return "Correo o contraseña incorrectos. Si aún no tienes cuenta, usa 'Registrarse'; si ya te registraste, confirma tu correo antes de ingresar.";
     if (m.indexOf("password should be") !== -1) return "La contraseña debe tener al menos 6 caracteres.";
-    if (m.indexOf("email not confirmed") !== -1) return "Debes confirmar tu correo antes de ingresar.";
+    if (m.indexOf("email not confirmed") !== -1 || m.indexOf("not_confirmed") !== -1) return "Tu correo aún no está confirmado. Abre el enlace que te enviamos (revisa spam) o pide reenviarlo.";
+    if (m.indexOf("rate limit") !== -1 || m.indexOf("too many") !== -1) return "Demasiados intentos o correos en poco tiempo. Espera unos minutos e inténtalo de nuevo.";
     return "No se pudo completar: " + m;
   }
 
@@ -206,7 +243,7 @@
       // Perfil ausente: forzar salida con mensaje
       if (!overlay) buildOverlay();
       setMode("login");
-      setMsg("Tu cuenta no tiene perfil asociado. Contacta al administrador.", "err");
+      setMsg("No encontramos tu perfil. Si te registraste recién, cierra sesión e ingresa de nuevo; si el problema persiste, avísale al administrador.", "err");
       DT.client.auth.signOut();
     });
   }
@@ -229,8 +266,13 @@
       }
     });
     DT.client.auth.getSession().then(function (res) {
-      if (res.data && res.data.session) { onSignedIn(res.data.session); }
-      else { buildOverlay(); }
+      if (res.data && res.data.session) { onSignedIn(res.data.session); cleanUrl(); }
+      else {
+        buildOverlay();
+        var ue = getUrlError();
+        if (ue.error || ue.error_description || ue.error_code) { setMsg(translateUrlErr(ue), "err"); }
+        cleanUrl();
+      }
     });
   }
 
