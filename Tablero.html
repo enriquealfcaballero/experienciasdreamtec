@@ -640,7 +640,13 @@ function NewEventView({ onSubmit, onCancel, defaultSeller }) {
           </div></div>
           <div className="form-row"><label htmlFor="venue">Lugar</label><input id="venue" value={venue} onChange={(e) => setVenue(e.target.value)} placeholder="Dirección o recinto" /></div>
           <div className="form-row"><label htmlFor="attendees">Asistentes esperados</label><input id="attendees" type="number" value={attendees} onChange={(e) => setAttendees(e.target.value)} placeholder="0" min="0" /></div>
-          <div className="form-row full"><label htmlFor="amount">Monto (opcional)</label><input id="amount" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="CLP" /></div>
+          <div className="form-row full">
+            <label htmlFor="amount">Monto vendido (CLP)</label>
+            <input id="amount" type="text" inputMode="numeric" value={amount ? Number(amount).toLocaleString('es-CL') : ''}
+              onChange={(e) => setAmount(e.target.value.replace(/[^0-9]/g, ''))}
+              placeholder="Solo números, ej: 1500000" />
+            <span style={{ fontSize: 11, color: 'var(--ink-mute)' }}>{amount ? fmtCLP(Number(amount)) : 'Solo se aceptan números; se usa para el dashboard.'}</span>
+          </div>
           <div className="form-row full"><label htmlFor="notes">Notas</label><textarea id="notes" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Detalles, requerimientos especiales, etc." /></div>
         </div>
         <div className="form-foot"><button type="button" className="btn" onClick={onCancel}>Cancelar</button><button type="submit" className="btn btn-primary">Crear evento</button></div>
