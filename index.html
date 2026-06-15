@@ -3,6 +3,22 @@
 <head>
   <meta charset="utf-8">
   <title>Carta Gantt · Eventos de Experiencia · Dreamtec</title>
+  <!-- Gate de sesión: chequeo síncrono ANTES de que el bundler renderice la Gantt -->
+  <script>
+    window.__DT_GANTT_PAGE = true;
+    (function () {
+      try {
+        var raw = localStorage.getItem('sb-qzsdurpcrnkiyhjzhpks-auth-token');
+        if (!raw) { window.__DT_AUTHED = false; return; }
+        var t = JSON.parse(raw);
+        var s = (t && t.currentSession) ? t.currentSession : t;
+        var tok = s && s.access_token;
+        var exp = s && s.expires_at;
+        window.__DT_AUTHED = !!(tok && (!exp || exp * 1000 > Date.now()));
+        if (window.__DT_AUTHED) { try { sessionStorage.removeItem('dt_reloaded'); } catch (e) {} }
+      } catch (e) { window.__DT_AUTHED = false; }
+    })();
+  </script>
   <!-- Login obligatorio (acceso interno Dreamtec) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
@@ -44,6 +60,9 @@
 document.addEventListener('DOMContentLoaded', async function() {
   const loading = document.getElementById('__bundler_loading');
   function setStatus(msg) { if (loading) loading.textContent = msg; }
+
+  // Gate: sin sesión no se renderiza la Gantt; auth.js muestra el login encima.
+  if (!window.__DT_AUTHED) { setStatus('Inicia sesión para ver la Carta Gantt…'); return; }
 
   // Error sink persists across replaceWith since it's on window, not the DOM.
   window.addEventListener('error', function(e) {

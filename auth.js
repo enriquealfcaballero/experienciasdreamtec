@@ -241,10 +241,16 @@
     loadProfile(session.user).then(function (profile) {
       DT._loadingProfile = false;
       DT.profile = profile;
+      // En la Gantt: si entramos sin sesión, el bundler abortó el render; recargar para mostrarla.
+      if (window.__DT_GANTT_PAGE && !window.__DT_AUTHED) {
+        if (!sessionStorage.getItem("dt_reloaded")) { try { sessionStorage.setItem("dt_reloaded", "1"); } catch (e) {} location.reload(); return; }
+      }
       var ovs = document.querySelectorAll("#dtauth-ov"); // quita TODOS los overlays
       for (var i = 0; i < ovs.length; i++) ovs[i].remove();
       overlay = null;
       showChip();
+      // El bundler de la Gantt reemplaza el DOM; re-insertar el chip de sesión.
+      if (window.__DT_GANTT_PAGE) { setTimeout(showChip, 1000); setTimeout(showChip, 2600); }
       fireReady();
     }).catch(function (err) {
       DT._loadingProfile = false;
