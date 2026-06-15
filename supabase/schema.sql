@@ -56,7 +56,7 @@ on conflict (task_id) do update set area = excluded.area;
 create table if not exists public.task_status (
   event_id        text not null references public.eventos(id) on delete cascade,
   task_id         text not null,
-  marked_by       uuid references auth.users(id),
+  marked_by       uuid references auth.users(id) on delete set null,
   marked_by_email text,
   marked_at       timestamptz not null default now(),
   primary key (event_id, task_id)
@@ -102,6 +102,23 @@ end; $$;
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created after insert on auth.users
   for each row execute function public.handle_new_user();
+
+-- ---------- Eliminar usuario (solo admin) ----------
+-- Se llama por RPC desde el cliente: sb.rpc('admin_delete_user', { target }).
+-- SECURITY DEFINER para poder borrar de auth.users; valida que quien llama sea admin.
+create or replace function public.admin_delete_user(target uuid) returns void
+  language plpgsql security definer set search_path = public, auth as $$
+begin
+  if not public.is_admin() then
+    raise exception 'Solo un administrador puede eliminar usuarios';
+  end if;
+  if target = auth.uid() then
+    raise exception 'No puedes eliminar tu propia cuenta';
+  end if;
+  delete from auth.users where id = target;  -- cascada a profiles
+end; $$;
+revoke all on function public.admin_delete_user(uuid) from public, anon;
+grant execute on function public.admin_delete_user(uuid) to authenticated;
 
 -- ---------- updated_at en eventos ----------
 create or replace function public.set_updated_at() returns trigger

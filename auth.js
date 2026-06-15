@@ -133,7 +133,10 @@
     if (mode === "register") {
       p = DT.client.auth.signUp({
         email: email, password: password,
-        options: { data: { area: f.area.value, full_name: f.full_name.value.trim() } }
+        options: {
+          data: { area: f.area.value, full_name: f.full_name.value.trim() },
+          emailRedirectTo: window.location.origin + window.location.pathname
+        }
       });
     } else {
       p = DT.client.auth.signInWithPassword({ email: email, password: password });
@@ -142,8 +145,9 @@
       btn.disabled = false;
       if (res.error) { setMsg(translateErr(res.error.message), "err"); return; }
       if (!res.data.session) {
-        // Sin sesión inmediata (p.ej. si se exige confirmación por correo)
-        setMsg("Revisa tu correo para confirmar la cuenta y luego ingresa.", "ok");
+        // Confirmación por correo activada: no hay sesión hasta confirmar
+        setMode("login");
+        setMsg("Te enviamos un correo de confirmación a " + email + ". Ábrelo, confirma tu cuenta y luego ingresa aquí.", "ok");
         return;
       }
       // onAuthStateChange se encarga de cargar perfil y cerrar el modal

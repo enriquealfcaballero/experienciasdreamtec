@@ -14,8 +14,9 @@ Ambas páginas exigen **iniciar sesión**.
 - **`enrique@dreamtec.cl` es administrador**: ve y aprueba todo, crea y elimina eventos.
 - **Miembros**: solo pueden marcar/desmarcar las tareas de **su propia área**. Las demás aparecen bloqueadas. Esto se cumple en el servidor (RLS), no solo en la interfaz.
 - **Crear eventos**: Ventas (área `comercial`) o admin. **Eliminar eventos**: solo admin.
+- **Gestión de usuarios** (panel "Usuarios", solo admin): dar/quitar admin, cambiar el área y **eliminar usuarios** (vía la función `admin_delete_user`, que valida que quien llama sea admin).
 
-> Hoy el registro usa **autoconfirmación** (acceso inmediato, sin clic en correo) para que funcione sin depender del envío de emails de Supabase. Para exigir confirmación por correo: en Supabase → Authentication → Providers → Email, activa "Confirm email" y configura un SMTP propio + el Site URL del sitio en Netlify.
+> El registro **exige confirmación por correo**: al registrarse, la persona recibe un email con un enlace; hasta confirmarlo no puede ingresar. El envío usa el servicio de correo integrado de Supabase, que tiene **límites de tasa** y puede caer en spam; para uso intensivo conviene configurar **SMTP propio** (Supabase → Authentication → Emails → SMTP) y fijar el **Site URL** al dominio de Netlify (Authentication → URL Configuration).
 
 ## Arquitectura
 
