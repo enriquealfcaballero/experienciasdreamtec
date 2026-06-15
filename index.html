@@ -7,16 +7,23 @@
   <script>
     window.__DT_GANTT_PAGE = true;
     (function () {
+      var authed = false;
       try {
-        var raw = localStorage.getItem('sb-qzsdurpcrnkiyhjzhpks-auth-token');
-        if (!raw) { window.__DT_AUTHED = false; return; }
-        var t = JSON.parse(raw);
-        var s = (t && t.currentSession) ? t.currentSession : t;
-        var tok = s && s.access_token;
-        var exp = s && s.expires_at;
-        window.__DT_AUTHED = !!(tok && (!exp || exp * 1000 > Date.now()));
-        if (window.__DT_AUTHED) { try { sessionStorage.removeItem('dt_reloaded'); } catch (e) {} }
-      } catch (e) { window.__DT_AUTHED = false; }
+        for (var i = 0; i < localStorage.length; i++) {
+          var k = localStorage.key(i);
+          if (!k || k.indexOf('sb-') !== 0 || k.indexOf('-auth-token') === -1) continue;
+          var raw = localStorage.getItem(k);
+          if (!raw || raw.length < 10) continue; // clave presente con contenido = sesión
+          try {
+            var t = JSON.parse(raw);
+            var s = (t && t.currentSession) ? t.currentSession : t;
+            var exp = s && s.expires_at;
+            if (!exp || exp * 1000 > Date.now()) { authed = true; break; }
+          } catch (e) { authed = true; break; } // hay token aunque no parsee como JSON: asumir sesión
+        }
+      } catch (e) { authed = false; }
+      window.__DT_AUTHED = authed;
+      if (authed) { try { sessionStorage.removeItem('dt_reloaded'); } catch (e) {} }
     })();
   </script>
   <!-- Login obligatorio (acceso interno Dreamtec) -->
