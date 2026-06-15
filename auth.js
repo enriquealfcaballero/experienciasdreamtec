@@ -196,6 +196,7 @@
   }
   function onSignedIn(session) {
     DT.user = session.user;
+    try { DT.client.realtime.setAuth(session.access_token); } catch (e) {}
     loadProfile(session.user).then(function (profile) {
       DT.profile = profile;
       if (overlay) { overlay.remove(); overlay = null; }
@@ -219,6 +220,7 @@
     DT.client = window.supabase.createClient(CFG.url, CFG.anonKey);
     DT.client.auth.onAuthStateChange(function (event, session) {
       if (session && session.user) {
+        try { DT.client.realtime.setAuth(session.access_token); } catch (e) {} // mantener token de realtime al refrescar
         if (!DT.profile) onSignedIn(session);
       } else {
         DT.profile = null; DT.user = null;

@@ -335,6 +335,10 @@ function todayLocal() { const d = new Date(); d.setHours(0, 0, 0, 0); return d; 
 function daysBetween(a, b) { const A = new Date(a); A.setHours(0,0,0,0); const B = new Date(b); B.setHours(0,0,0,0); return Math.round((B - A) / 86400000); }
 function taskDate(eventDateISO, taskDay) { const d = new Date(eventDateISO); d.setHours(0,0,0,0); d.setDate(d.getDate() + (taskDay - 7)); return d; }
 function applicableTasks(paymentMode) { return window.GANTT_DATA.TASKS.filter(t => t.pago === 'ambos' || t.pago === paymentMode); }
+function parseAmount(a) { if (a == null) return 0; const n = parseInt(String(a).replace(/[^0-9]/g, ''), 10); return isNaN(n) ? 0 : n; }
+function fmtCLP(n) { try { return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(n); } catch (e) { return '$' + n; } }
+function monthKey(iso) { const d = new Date(iso); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); }
+function monthLabel(key) { const p = key.split('-'); const d = new Date(Number(p[0]), Number(p[1]) - 1, 1); return d.toLocaleDateString('es-CL', { month: 'long', year: 'numeric' }); }
 function statusFor(task, event) {
   const today = todayLocal();
   const st = event.taskStatus?.[task.id];
@@ -474,7 +478,7 @@ function App({ profile }) {
 
   return (
     <div className="app">
-      <TopBar profile={profile} isAdmin={isAdmin} conn={conn} onUsers={openUsers} />
+      <TopBar profile={profile} isAdmin={isAdmin} conn={conn} onUsers={openUsers} onDashboard={() => setView('dashboard')} />
       {view === 'list' && (
         <EventsView events={eventsList} canCreate={canCreate} isAdmin={isAdmin}
           onOpen={(id) => { setView('detail'); setSelectedEventId(id); }}
@@ -496,6 +500,9 @@ function App({ profile }) {
           <button className="btn btn-primary" onClick={() => { setView('list'); setSelectedEventId(null); }}>← Volver a eventos</button>
         </div>
       )}
+      {view === 'dashboard' && (
+        <DashboardView events={eventsList} onBack={() => setView('list')} />
+      )}
       {view === 'users' && isAdmin && (
         <UsersView users={users} loading={usersLoading} meId={window.DT.user.id}
           onBack={() => setView('list')} onReload={loadUsers}
@@ -507,7 +514,7 @@ function App({ profile }) {
   );
 }
 
-function TopBar({ profile, isAdmin, conn, onUsers }) {
+function TopBar({ profile, isAdmin, conn, onUsers, onDashboard }) {
   const G = window.GANTT_DATA;
   const connLabel = { connecting: 'Conectando', live: 'En vivo', saving: 'Guardando…', error: 'Sin conexión' }[conn] || '';
   const connCls = 'tb-conn' + (conn === 'live' ? ' live' : conn === 'saving' ? ' saving' : conn === 'error' ? ' error' : '');
@@ -518,6 +525,7 @@ function TopBar({ profile, isAdmin, conn, onUsers }) {
       <div className="tb-tag">Tablero operativo · Eventos</div>
       <span className={connCls} title="Estado de la conexión en tiempo real"><span className="tb-conn-dot"></span>{connLabel}</span>
       <div className="tb-spacer"></div>
+      <button className="btn btn-sm" onClick={onDashboard} title="Resumen de eventos por mes">Dashboard</button>
       {isAdmin && <button className="btn btn-sm" onClick={onUsers} title="Gestionar usuarios y permisos">Usuarios</button>}
       <div className="user-box">
         <span className="user-name">{profile.full_name || profile.email}</span>
@@ -750,6 +758,67 @@ function TaskRow({ task, event, myArea, canMark, onToggle }) {
       </div>
       {done && <div className="tsk-marker"><span className="tsk-marker-by">{st.st.by}</span><span className="tsk-marker-when">{fmtRel(st.st.at)}</span>{canMark && <button className="tsk-marker-undo" onClick={onToggle}>deshacer</button>}</div>}
     </div>
+  );
+}
+
+function Kpi({ label, value }) {
+  return <div className="evt-card" style={{ cursor: 'default', display: 'block', padding: '16px 18px' }}><div className="prog-pct-n" style={{ fontSize: 24 }}>{value}</div><div className="prog-pct-l">{label}</div></div>;
+}
+
+function DashboardView({ events, onBack }) {
+  const agg = useM(() => {
+    const m = {};
+    events.forEach(e => {
+      if (!e.eventDate) return;
+      const k = monthKey(e.eventDate);
+      m[k] = m[k] || { count: 0, total: 0, contado: 0, credito: 0 };
+      m[k].count += 1;
+      const amt = parseAmount(e.amount);
+      m[k].total += amt;
+      if (e.paymentMode === 'credito') m[k].credito += amt; else m[k].contado += amt;
+    });
+    return m;
+  }, [events]);
+  const keys = Object.keys(agg).sort().reverse();
+  const maxTotal = keys.reduce((mx, k) => Math.max(mx, agg[k].total), 0) || 1;
+  const totalEvents = events.length;
+  const totalMoney = events.reduce((s, e) => s + parseAmount(e.amount), 0);
+  const now = new Date();
+  const curKey = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+  const thisMonth = agg[curKey] || { count: 0, total: 0 };
+  return (
+    <>
+      <div className="detail-bar">
+        <button className="btn btn-sm btn-ghost" onClick={onBack}>← Eventos</button>
+        <span className="crumb">Eventos / <span className="crumb-cur">Dashboard</span></span>
+      </div>
+      <div className="ph"><div className="ph-l"><div className="ph-eye">Resumen</div><h1 className="ph-title">Dashboard de eventos</h1><p className="ph-sub">Cantidad de eventos y plata vendida por mes (según la fecha del evento). El monto sale del campo "Monto" de cada evento.</p></div></div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(190px,1fr))', gap: 12, marginBottom: 20 }}>
+        <Kpi label="Eventos totales" value={totalEvents} />
+        <Kpi label="Plata vendida (total)" value={fmtCLP(totalMoney)} />
+        <Kpi label="Eventos este mes" value={thisMonth.count} />
+        <Kpi label="Vendido este mes" value={fmtCLP(thisMonth.total)} />
+      </div>
+      {keys.length === 0 ? (
+        <div className="evt-empty"><div className="evt-empty-h">Sin datos todavía</div><p className="evt-empty-p">Cuando se carguen eventos con su monto, verás aquí el resumen por mes.</p></div>
+      ) : (
+        <div className="evts">
+          {keys.map(k => { const a = agg[k]; return (
+            <div key={k} className="evt-card" style={{ cursor: 'default', gridTemplateColumns: '200px auto 1fr', gap: 20 }}>
+              <div>
+                <div className="evt-card-title" style={{ textTransform: 'capitalize' }}>{monthLabel(k)}</div>
+                <div className="evt-card-meta"><span>{a.count} evento{a.count !== 1 ? 's' : ''}</span></div>
+              </div>
+              <div style={{ textAlign: 'right', minWidth: 150 }}>
+                <div className="evt-card-pct">{fmtCLP(a.total)}</div>
+                <div className="evt-card-pct-l">{a.credito > 0 ? `Contado ${fmtCLP(a.contado)} · Crédito ${fmtCLP(a.credito)}` : 'vendido'}</div>
+              </div>
+              <div style={{ alignSelf: 'center' }}><div className="evt-card-bar" style={{ width: '100%' }}><div className="evt-card-bar-fill" style={{ width: (a.total / maxTotal * 100) + '%' }}></div></div></div>
+            </div>
+          ); })}
+        </div>
+      )}
+    </>
   );
 }
 
