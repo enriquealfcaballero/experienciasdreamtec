@@ -1,49 +1,58 @@
 # Dreamtec · Eventos de Experiencia
 
-Sitio estático con dos vistas, conectado a **Supabase** para estado compartido en tiempo real:
+Sitio estático (sin build) con login y estado compartido en tiempo real vía **Supabase**:
 
-- **`index.html`** — Carta Gantt completa (cronograma, dependencias, reglas).
-- **`Tablero.html`** — Tablero operativo: checklist por evento. Cualquier área marca sus tareas y **todos ven el avance en vivo** (persistido en Supabase, ya no en el navegador).
+- **`index.html`** — Carta Gantt del flujo completo (cronograma, dependencias, reglas).
+- **`Tablero.html`** — Tablero operativo: checklist por evento. Cada área marca **solo sus tareas** y todos ven el avance en vivo.
+
+Ambas páginas exigen **iniciar sesión**.
+
+## Acceso (Supabase Auth)
+
+- **Registro restringido** a correos `@dreamtec.cl` y `@ofimundo.cl` (validado en el servidor por un trigger en `auth.users`).
+- En el registro la persona elige **su área una sola vez**; queda en su perfil. (Ya no se selecciona el área dentro del tablero.)
+- **`enrique@dreamtec.cl` es administrador**: ve y aprueba todo, crea y elimina eventos.
+- **Miembros**: solo pueden marcar/desmarcar las tareas de **su propia área**. Las demás aparecen bloqueadas. Esto se cumple en el servidor (RLS), no solo en la interfaz.
+- **Crear eventos**: Ventas (área `comercial`) o admin. **Eliminar eventos**: solo admin.
+
+> Hoy el registro usa **autoconfirmación** (acceso inmediato, sin clic en correo) para que funcione sin depender del envío de emails de Supabase. Para exigir confirmación por correo: en Supabase → Authentication → Providers → Email, activa "Confirm email" y configura un SMTP propio + el Site URL del sitio en Netlify.
 
 ## Arquitectura
 
-- HTML/CSS/JS estático, **sin build**. React 18 + Babel + `@supabase/supabase-js` se cargan desde CDN.
-- El Tablero guarda cada evento como una fila en la tabla `eventos` (columna `data` jsonb) y se suscribe a **Realtime** para reflejar cambios de otras personas al instante.
-- La Carta Gantt (`index.html`) es de solo lectura, no usa backend.
+- HTML/CSS/JS estático. React 18 + Babel + `@supabase/supabase-js` desde CDN.
+- `auth.js` crea el cliente Supabase, bloquea la página con el login y comparte la sesión/perfil (`window.DT`).
+- El estado del tablero vive en Supabase y se sincroniza con **Realtime**.
+
+> Nota: al ser un sitio estático, los archivos HTML/JS son públicos (descargables). Lo que el login realmente protege son **los datos** (eventos y avance), gobernados por las políticas RLS de Supabase. La `anon key` es pública por diseño.
 
 ## Puesta en marcha
 
 ### 1. Base de datos (Supabase)
 1. Crea un proyecto en https://supabase.com.
-2. En **SQL Editor**, ejecuta el contenido de [`supabase/schema.sql`](supabase/schema.sql) (crea la tabla `eventos`, las políticas RLS y habilita Realtime).
-3. En **Project Settings → API**, copia el **Project URL** y la **anon public key**.
-4. Pégalos en [`supabase-config.js`](supabase-config.js).
+2. En **SQL Editor**, ejecuta [`supabase/schema.sql`](supabase/schema.sql) (tablas, triggers de auth, RLS y Realtime).
+3. En **Project Settings → API**, copia el **Project URL** y la **anon public key** y pégalos en [`supabase-config.js`](supabase-config.js).
+4. En **Authentication → Providers → Email**, deja habilitado el registro. (Autoconfirmación según la nota de arriba.)
 
-> La `anon key` es pública por diseño (viaja al navegador). El acceso real lo controlan
-> las políticas RLS. Hoy son **abiertas al rol anónimo** (herramienta interna sin login).
-> Para endurecerlo, activa Supabase Auth y cambia las políticas a `to authenticated`.
-
-### 2. Deploy (Netlify)
-**Desde Git (recomendado, redeploy automático en cada push):**
-1. Sube este repo a GitHub.
-2. Netlify → *Add new site → Import from Git* → selecciona el repo.
-3. Build command: *(vacío)*. Publish directory: `.` (ya configurado en `netlify.toml`).
-
-**O drag & drop:** arrastra la carpeta a https://app.netlify.com/drop (con `supabase-config.js` ya completado).
+### 2. Deploy (Netlify, conectado a Git)
+1. Netlify → *Add new site → Import from Git* → este repo.
+2. Build command: *(vacío)*. Publish directory: `.` (en `netlify.toml`).
+3. Cada `git push` a `main` redespliega solo.
 
 ## Estructura
 
 ```
-index.html            Carta Gantt (autocontenida)
-Tablero.html          Tablero operativo (React + Supabase + Realtime)
-supabase-config.js    URL + anon key del proyecto Supabase
-supabase/schema.sql   Tabla eventos + RLS + Realtime
+index.html            Carta Gantt (con gate de login)
+Tablero.html          Tablero operativo (React + Supabase + Realtime + permisos por área)
+auth.js               Login/registro compartido (restringe dominios, crea sesión)
+supabase-config.js    URL + anon key del proyecto
+supabase/schema.sql   Tablas, triggers de auth, RLS, Realtime
 netlify.toml          Publish dir = "."
 assets/dreamtec-logo.png
 ```
 
 ## Modelo de datos
 
-Tabla `eventos`: `id text pk`, `data jsonb`, `created_at`, `updated_at`.
-`data` contiene el evento completo: `name, client, eventDate, paymentMode, seller, venue, attendees, amount, notes, createdAt, taskStatus`.
-`taskStatus[taskId] = { done, by, at }` registra qué área marcó cada tarea y cuándo.
+- `eventos(id text pk, data jsonb, created_at, updated_at)` — metadatos del evento.
+- `task_status(event_id, task_id, marked_by, marked_by_email, marked_at)` — una fila por tarea marcada.
+- `task_areas(task_id pk, area)` — referencia tarea→área (la usa RLS para impedir falsear el área).
+- `profiles(id uuid pk → auth.users, email, full_name, area, role)` — perfil del usuario.
