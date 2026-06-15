@@ -362,6 +362,8 @@ function App({ profile }) {
   const [view, setView] = useS('list');
   const [selectedEventId, setSelectedEventId] = useS(null);
   const [openStages, setOpenStages] = useS({});
+  const [users, setUsers] = useS([]);
+  const [usersLoading, setUsersLoading] = useS(false);
 
   async function fetchAll() {
     const [evRes, tsRes] = await Promise.all([
@@ -442,6 +444,21 @@ function App({ profile }) {
     setOpenStages(s => { const cur = new Set(s[eventId] || []); if (open) cur.add(stageId); else cur.delete(stageId); return { ...s, [eventId]: Array.from(cur) }; });
   }
 
+  async function loadUsers() {
+    if (!isAdmin) return;
+    setUsersLoading(true);
+    const { data, error } = await sb.from('profiles').select('id, email, full_name, area, role').order('email');
+    setUsersLoading(false);
+    if (error) { alert('No se pudieron cargar los usuarios: ' + error.message); return; }
+    setUsers(data || []);
+  }
+  async function updateProfile(id, patch) {
+    setUsers(us => us.map(u => u.id === id ? { ...u, ...patch } : u)); // optimista
+    const { error } = await sb.from('profiles').update(patch).eq('id', id);
+    if (error) { alert('No se pudo actualizar el usuario: ' + error.message); loadUsers(); }
+  }
+  function openUsers() { setView('users'); loadUsers(); }
+
   if (loading) return <div className="loading-wrap"><span className="spin"></span> Cargando eventos…</div>;
   if (loadErr) return (
     <div className="app"><div className="evt-empty"><div className="evt-empty-h">No se pudieron cargar los datos</div><p className="evt-empty-p">{loadErr}</p><button className="btn btn-primary" onClick={() => { setLoadErr(null); setLoading(true); fetchAll(); }}>Reintentar</button></div></div>
@@ -451,7 +468,7 @@ function App({ profile }) {
 
   return (
     <div className="app">
-      <TopBar profile={profile} isAdmin={isAdmin} conn={conn} />
+      <TopBar profile={profile} isAdmin={isAdmin} conn={conn} onUsers={openUsers} />
       {view === 'list' && (
         <EventsView events={eventsList} canCreate={canCreate} isAdmin={isAdmin}
           onOpen={(id) => { setView('detail'); setSelectedEventId(id); }}
@@ -473,11 +490,17 @@ function App({ profile }) {
           <button className="btn btn-primary" onClick={() => { setView('list'); setSelectedEventId(null); }}>← Volver a eventos</button>
         </div>
       )}
+      {view === 'users' && isAdmin && (
+        <UsersView users={users} loading={usersLoading} meId={window.DT.user.id}
+          onBack={() => setView('list')} onReload={loadUsers}
+          onSetRole={(id, role) => updateProfile(id, { role })}
+          onSetArea={(id, area) => updateProfile(id, { area })} />
+      )}
     </div>
   );
 }
 
-function TopBar({ profile, isAdmin, conn }) {
+function TopBar({ profile, isAdmin, conn, onUsers }) {
   const G = window.GANTT_DATA;
   const connLabel = { connecting: 'Conectando', live: 'En vivo', saving: 'Guardando…', error: 'Sin conexión' }[conn] || '';
   const connCls = 'tb-conn' + (conn === 'live' ? ' live' : conn === 'saving' ? ' saving' : conn === 'error' ? ' error' : '');
@@ -488,6 +511,7 @@ function TopBar({ profile, isAdmin, conn }) {
       <div className="tb-tag">Tablero operativo · Eventos</div>
       <span className={connCls} title="Estado de la conexión en tiempo real"><span className="tb-conn-dot"></span>{connLabel}</span>
       <div className="tb-spacer"></div>
+      {isAdmin && <button className="btn btn-sm" onClick={onUsers} title="Gestionar usuarios y permisos">Usuarios</button>}
       <div className="user-box">
         <span className="user-name">{profile.full_name || profile.email}</span>
         {isAdmin ? <span className="user-adm">Admin</span> : <span className="user-area">{G.AREAS[profile.area]?.label || profile.area}</span>}
@@ -719,6 +743,60 @@ function TaskRow({ task, event, myArea, canMark, onToggle }) {
       </div>
       {done && <div className="tsk-marker"><span className="tsk-marker-by">{st.st.by}</span><span className="tsk-marker-when">{fmtRel(st.st.at)}</span>{canMark && <button className="tsk-marker-undo" onClick={onToggle}>deshacer</button>}</div>}
     </div>
+  );
+}
+
+function UsersView({ users, loading, meId, onBack, onReload, onSetRole, onSetArea }) {
+  const G = window.GANTT_DATA;
+  return (
+    <>
+      <div className="detail-bar">
+        <button className="btn btn-sm btn-ghost" onClick={onBack}>← Eventos</button>
+        <span className="crumb">Eventos / <span className="crumb-cur">Usuarios</span></span>
+        <div style={{ flex: 1 }}></div>
+        <button className="btn btn-sm" onClick={onReload}>Actualizar</button>
+      </div>
+      <div className="ph"><div className="ph-l">
+        <div className="ph-eye">Administración</div>
+        <h1 className="ph-title">Usuarios y permisos</h1>
+        <p className="ph-sub">Cambia el área de una persona o conviértela en administradora. Los administradores ven y aprueban todo, crean y eliminan eventos, y gestionan usuarios.</p>
+      </div></div>
+      {loading ? <div className="loading-wrap"><span className="spin"></span> Cargando usuarios…</div>
+      : users.length === 0 ? <div className="evt-empty"><div className="evt-empty-h">Aún no hay usuarios</div><p className="evt-empty-p">Aparecerán aquí a medida que se registren.</p></div>
+      : (
+        <div className="evts">
+          {users.map(u => {
+            const isMe = u.id === meId;
+            const admin = u.role === 'admin';
+            return (
+              <div key={u.id} className="evt-card" style={{ cursor: 'default', gridTemplateColumns: '1fr auto' }}>
+                <div className="evt-card-body">
+                  <div className="evt-card-top">
+                    <h3 className="evt-card-title">{u.full_name || '(sin nombre)'}</h3>
+                    {admin && <span className="user-adm">Admin</span>}
+                    {isMe && <span className="evt-card-client">· tú</span>}
+                  </div>
+                  <div className="evt-card-meta"><span>{u.email}</span></div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                  <select value={u.area} onChange={e => onSetArea(u.id, e.target.value)}
+                    style={{ padding: '8px 10px', border: '1px solid var(--line)', borderRadius: 'var(--r-sm)', background: 'var(--bg-card)', fontSize: '13px' }}>
+                    {Object.entries(G.AREAS).map(([k, a]) => <option key={k} value={k}>{a.label}</option>)}
+                  </select>
+                  {isMe ? (
+                    <button className="btn btn-sm" disabled title="No puedes cambiar tu propio rol" style={{ opacity: .5, cursor: 'default' }}>{admin ? 'Admin' : 'Miembro'}</button>
+                  ) : admin ? (
+                    <button className="btn btn-sm" onClick={() => { if (confirm('¿Quitar permisos de administrador a ' + (u.full_name || u.email) + '?')) onSetRole(u.id, 'member'); }}>Quitar admin</button>
+                  ) : (
+                    <button className="btn btn-sm btn-primary" onClick={() => { if (confirm('¿Dar permisos de administrador a ' + (u.full_name || u.email) + '?')) onSetRole(u.id, 'admin'); }}>Hacer admin</button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </>
   );
 }
 
