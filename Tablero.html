@@ -367,7 +367,6 @@ window.GANTT_DATA = (function () {
 <script>window.DT_HIDE_CHIP = true;</script><!-- el Tablero muestra el usuario en su propia topbar; evita que auth.js pinte el chip si el perfil carga antes que React -->
 <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js" crossorigin></script>
 <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script><!-- lectura del formulario Excel -->
 <script src="https://cdn.jsdelivr.net/npm/@babel/standalone/babel.min.js"></script>
 
 <script type="text/babel" data-presets="react">
@@ -407,11 +406,26 @@ function taskDate(event, taskDay) {
 }
 function applicableTasks(paymentMode) { return window.GANTT_DATA.TASKS.filter(t => t.pago === 'ambos' || t.pago === paymentMode); }
 // --- Lectura del formulario Excel del evento (SheetJS) ---
+// Se carga BAJO DEMANDA (no bloquea el render del tablero si el CDN está lento/bloqueado).
+let _xlsxPromise = null;
+function ensureXLSX() {
+  if (window.XLSX) return Promise.resolve(window.XLSX);
+  if (_xlsxPromise) return _xlsxPromise;
+  _xlsxPromise = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+    s.async = true;
+    s.onload = () => window.XLSX ? resolve(window.XLSX) : reject(new Error('xlsx no se inicializó'));
+    s.onerror = () => { _xlsxPromise = null; reject(new Error('no se pudo cargar el lector de Excel (xlsx)')); };
+    document.head.appendChild(s);
+  });
+  return _xlsxPromise;
+}
 function norm(s) { return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim(); }
 function parseEventFormSheet(wb) {
   const out = [];
   wb.SheetNames.forEach(name => {
-    const rows = XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, raw: false, defval: '' });
+    const rows = window.XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, raw: false, defval: '' });
     rows.forEach(r => {
       const familia = (r[0] || '').toString().trim();
       const pregunta = (r[1] || '').toString().trim();
@@ -781,8 +795,11 @@ function NewEventView({ onSubmit, onCancel, defaultSeller }) {
     const file = e.target.files && e.target.files[0]; e.target.value = '';
     if (!file) return;
     setFormErr('');
+    let XLSXlib;
+    try { XLSXlib = await ensureXLSX(); }
+    catch (err) { setFormErr('No se pudo cargar el lector de Excel. Revisa tu conexión o firewall e inténtalo de nuevo.'); return; }
     try {
-      const wb = XLSX.read(await file.arrayBuffer(), { type: 'array' });
+      const wb = XLSXlib.read(await file.arrayBuffer(), { type: 'array' });
       const rows = parseEventFormSheet(wb);
       if (!rows.length) { setFormErr('No se encontraron respuestas (Familia / Pregunta / Respuesta) en el Excel.'); return; }
       setFormRows(rows); setFormName(file.name);
