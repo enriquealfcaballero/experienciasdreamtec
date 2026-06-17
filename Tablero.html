@@ -231,6 +231,7 @@ a:hover { text-decoration: underline; }
 .form-file { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; padding: 16px 18px; margin-bottom: 16px; border: 1.5px dashed var(--line); border-radius: var(--r-sm); background: var(--bg-soft); }
 .form-file.ok { border-style: solid; border-color: oklch(0.75 0.12 150); background: oklch(0.97 0.03 150); }
 .form-file-main { display: flex; align-items: center; gap: 12px; }
+.form-file-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .form-file-ic { font-size: 22px; }
 .form-file-t { font-weight: 700; font-size: 13.5px; color: var(--ink); }
 .form-file-s { font-size: 12px; color: var(--ink-mute); margin-top: 2px; max-width: 460px; }
@@ -446,6 +447,33 @@ function parseLooseDate(s) {
   if (m) return `${m[1]}-${String(m[2]).padStart(2, '0')}-${String(m[3]).padStart(2, '0')}`;
   const dt = new Date(s); if (!isNaN(dt)) return dt.toISOString().slice(0, 10);
   return '';
+}
+// Fuente única del formulario: con esto se GENERA la plantilla a descargar y se PARSEA la subida.
+const EVENT_FORM_TEMPLATE = [
+  { familia: 'Evento', preguntas: ['Día', 'Hora', 'Lugar del evento (no modificable una vez confirmado)'] },
+  { familia: 'Montaje', preguntas: ['Día', 'Hora'] },
+  { familia: 'Desmontaje', preguntas: ['Día', 'Hora'] },
+  { familia: 'Participación y Objetivo', preguntas: ['¿Cantidad de personas estimadas que participarán en el evento?', '¿Qué esperan del evento? (Team Building, competición entre personas o mejor tiempo)', '¿Qué consideran que sería un resultado exitoso del evento?'] },
+  { familia: 'Tipo de Experiencia', preguntas: ['¿Algún juego de preferencia? (F1, Forza o Gran Turismo)'] },
+  { familia: 'Duración y Formato', preguntas: ['¿Cantidad de horas de evento a realizar?', '¿De qué hora a qué hora les gustaría que esté activo el simulador?'] },
+  { familia: 'Ubicación y Espacio', preguntas: ['¿Existe un mapa donde estarán posicionados los simuladores?'] },
+  { familia: 'Upsell', preguntas: ["¿Desean agregar servicios adicionales? (Tótem publicitario / Pantalla 136'' / Zona Gamer)"] },
+  { familia: 'Producción y Operación', preguntas: ['¿Tiene preferencia de anfitrión?'] },
+  { familia: 'Seguridad', preguntas: ['¿Hay seguridad en el lugar durante el evento?', 'Si el simulador pasa la noche en el recinto, ¿hay seguridad?'] },
+  { familia: 'Logística', preguntas: ['¿La instalación debe ser el mismo día del evento?', '¿Cuenta con internet en las instalaciones?'] },
+  { familia: 'Confirmación', preguntas: ['¿Confirmamos fecha y horario definitivo para reservar producción Dreamtec?'] },
+  { familia: 'Producción Final', preguntas: ['¿El lugar cuenta con electricidad suficiente? (cada simulador 500 W, impresora de poleras 2000 W, pantalla 136" 2000 W)', '¿Quién es el responsable final en terreno el día del evento y su número de contacto?', '¿Se necesita autorización para ingresar el día del montaje? Si es SÍ, indicar a quién enviar la información'] },
+];
+async function downloadEventTemplate() {
+  let X;
+  try { X = await ensureXLSX(); } catch (e) { alert('No se pudo cargar el generador de Excel. Revisa tu conexión o firewall.'); return; }
+  const aoa = [['Familia', 'Pregunta', 'Respuesta', 'Notas']];
+  EVENT_FORM_TEMPLATE.forEach(g => g.preguntas.forEach(q => aoa.push([g.familia, q, '', ''])));
+  const ws = X.utils.aoa_to_sheet(aoa);
+  ws['!cols'] = [{ wch: 24 }, { wch: 72 }, { wch: 34 }, { wch: 28 }];
+  const wb = X.utils.book_new();
+  X.utils.book_append_sheet(wb, ws, 'Formulario');
+  X.writeFile(wb, 'Formulario evento Dreamtec.xlsx');
 }
 function parseAmount(a) { if (a == null) return 0; const n = parseInt(String(a).replace(/[^0-9]/g, ''), 10); return isNaN(n) ? 0 : n; }
 function fmtCLP(n) { try { return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(n); } catch (e) { return '$' + n; } }
@@ -830,13 +858,16 @@ function NewEventView({ onSubmit, onCancel, defaultSeller }) {
             <div className="form-file-ic">📄</div>
             <div>
               <div className="form-file-t">{formRows ? `Formulario cargado: ${formName}` : 'Formulario del evento (Excel) — obligatorio'}</div>
-              <div className="form-file-s">{formRows ? `${formRows.length} respuestas leídas · puedes reemplazarlo` : 'Sube el Excel lleno con el cliente (.xlsx). Se extraen fecha, lugar y asistentes, y se guarda el brief completo.'}</div>
+              <div className="form-file-s">{formRows ? `${formRows.length} respuestas leídas · puedes reemplazarlo` : '1) Descarga la plantilla y envíala al cliente para que la complete. 2) Sube el Excel lleno (.xlsx): se extraen fecha, lugar y asistentes, y se guarda el brief.'}</div>
             </div>
           </div>
-          <label className="btn btn-sm btn-primary" style={{ cursor: 'pointer' }}>
-            {formRows ? 'Reemplazar' : 'Subir Excel'}
-            <input type="file" accept=".xlsx,.xls" style={{ display: 'none' }} onChange={onForm} />
-          </label>
+          <div className="form-file-actions">
+            <button type="button" className="btn btn-sm" onClick={downloadEventTemplate}>↓ Descargar plantilla</button>
+            <label className="btn btn-sm btn-primary" style={{ cursor: 'pointer' }}>
+              {formRows ? 'Reemplazar' : 'Subir Excel lleno'}
+              <input type="file" accept=".xlsx,.xls" style={{ display: 'none' }} onChange={onForm} />
+            </label>
+          </div>
         </div>
         {formErr && <div className="alert crit" style={{ marginBottom: 14 }}><span className="alert-icon"><span>!</span></span><div>{formErr}</div></div>}
         {formRows && (
