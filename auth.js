@@ -197,7 +197,7 @@
     // Pedir enlace de recuperación
     if (mode === "recover") {
       btn.disabled = true; setMsg("Enviando enlace de recuperación…", "");
-      DT.client.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + window.location.pathname }).then(function (r) {
+      DT.client.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + window.location.pathname + "?dt=recovery" }).then(function (r) {
         btn.disabled = false;
         if (r.error) { setMsg(translateErr(r.error.message), "err"); return; }
         setMsg("Si existe una cuenta con " + email + ", te enviamos un enlace para restablecer la contraseña. Revisa tu bandeja y el spam.", "ok");
@@ -315,6 +315,9 @@
       return;
     }
     injectCss();
+    // Detectar recuperación ANTES de crear el cliente, para que el flujo de
+    // "ya logueado" no gane la carrera y borre el formulario de nueva contraseña.
+    if (/[?&]dt=recovery/.test(window.location.search) || getUrlError().type === "recovery") DT._recovery = true;
     DT.client = window.supabase.createClient(CFG.url, CFG.anonKey);
     DT.client.auth.onAuthStateChange(function (event, session) {
       if (event === "PASSWORD_RECOVERY") {
@@ -335,7 +338,7 @@
     });
     DT.client.auth.getSession().then(function (res) {
       var url = getUrlError();
-      if (url.type === "recovery") { // volviste desde el enlace de recuperación
+      if (DT._recovery || url.type === "recovery") { // volviste desde el enlace de recuperación
         DT._recovery = true;
         if (!overlay) buildOverlay();
         setMode("newpass");
