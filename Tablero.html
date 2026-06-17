@@ -449,20 +449,50 @@ function parseLooseDate(s) {
   return '';
 }
 // Fuente única del formulario: con esto se GENERA la plantilla a descargar y se PARSEA la subida.
+// Las preguntas marcadas con (·) se usan además para autocompletar campos del evento al subir.
 const EVENT_FORM_TEMPLATE = [
-  { familia: 'Evento', preguntas: ['Día', 'Hora', 'Lugar del evento (no modificable una vez confirmado)'] },
-  { familia: 'Montaje', preguntas: ['Día', 'Hora'] },
-  { familia: 'Desmontaje', preguntas: ['Día', 'Hora'] },
-  { familia: 'Participación y Objetivo', preguntas: ['¿Cantidad de personas estimadas que participarán en el evento?', '¿Qué esperan del evento? (Team Building, competición entre personas o mejor tiempo)', '¿Qué consideran que sería un resultado exitoso del evento?'] },
-  { familia: 'Tipo de Experiencia', preguntas: ['¿Algún juego de preferencia? (F1, Forza o Gran Turismo)'] },
-  { familia: 'Duración y Formato', preguntas: ['¿Cantidad de horas de evento a realizar?', '¿De qué hora a qué hora les gustaría que esté activo el simulador?'] },
-  { familia: 'Ubicación y Espacio', preguntas: ['¿Existe un mapa donde estarán posicionados los simuladores?'] },
-  { familia: 'Upsell', preguntas: ["¿Desean agregar servicios adicionales? (Tótem publicitario / Pantalla 136'' / Zona Gamer)"] },
-  { familia: 'Producción y Operación', preguntas: ['¿Tiene preferencia de anfitrión?'] },
-  { familia: 'Seguridad', preguntas: ['¿Hay seguridad en el lugar durante el evento?', 'Si el simulador pasa la noche en el recinto, ¿hay seguridad?'] },
-  { familia: 'Logística', preguntas: ['¿La instalación debe ser el mismo día del evento?', '¿Cuenta con internet en las instalaciones?'] },
-  { familia: 'Confirmación', preguntas: ['¿Confirmamos fecha y horario definitivo para reservar producción Dreamtec?'] },
-  { familia: 'Producción Final', preguntas: ['¿El lugar cuenta con electricidad suficiente? (cada simulador 500 W, impresora de poleras 2000 W, pantalla 136" 2000 W)', '¿Quién es el responsable final en terreno el día del evento y su número de contacto?', '¿Se necesita autorización para ingresar el día del montaje? Si es SÍ, indicar a quién enviar la información'] },
+  { familia: 'Datos del evento', preguntas: [
+    'Nombre del evento',                                          // · name
+    'Empresa / cliente',                                          // · client
+    'Nombre y cargo de la contraparte (quién coordina)',
+    'Teléfono de contacto',
+    'Correo de contacto',
+    'Día del evento (formato DD-MM-AAAA)',                        // · eventDate
+    'Hora de inicio y término del evento',
+    'Lugar del evento / dirección (no modificable una vez confirmado)', // · venue
+    'Cantidad de personas estimadas que participarán',           // · attendees
+  ] },
+  { familia: 'Montaje y acceso', preguntas: [
+    'Día y hora de montaje',
+    'Día y hora de desmontaje',
+    '¿La instalación debe ser el mismo día del evento?',
+    '¿Se necesita autorización para ingresar el día del montaje? Si es SÍ, ¿a quién se le debe enviar la información?',
+    '¿Hay acceso para carga y descarga (ascensor/rampa) y estacionamiento cercano?',
+  ] },
+  { familia: 'Participación y objetivo', preguntas: [
+    '¿Qué esperan del evento? (Team Building, competición entre personas o mejor tiempo)',
+    '¿Qué consideran que sería un resultado exitoso del evento?',
+  ] },
+  { familia: 'Experiencia y formato', preguntas: [
+    '¿Algún juego de preferencia? (F1, Forza o Gran Turismo)',
+    '¿Cantidad de horas de evento a realizar?',
+    '¿De qué hora a qué hora les gustaría que esté activo el simulador?',
+    '¿Existe un mapa o plano donde estarán posicionados los simuladores?',
+  ] },
+  { familia: 'Servicios adicionales', preguntas: [
+    "¿Desean agregar servicios adicionales? (Tótem publicitario / Pantalla 136'' / Zona Gamer)",
+    '¿Requieren anfitrión? ¿Tienen preferencia de anfitrión?',
+  ] },
+  { familia: 'Infraestructura y seguridad', preguntas: [
+    '¿El lugar cuenta con electricidad suficiente? (cada simulador 500 W, impresora de poleras 2000 W, pantalla 136" 2000 W)',
+    '¿Cuenta con internet en las instalaciones?',
+    '¿Hay seguridad en el lugar durante el evento?',
+    'Si el simulador pasa la noche en el recinto, ¿hay seguridad?',
+  ] },
+  { familia: 'Confirmación', preguntas: [
+    '¿Confirmamos fecha y horario definitivo para reservar producción Dreamtec?',
+    '¿Quién es el responsable final en terreno el día del evento y su número de contacto?',
+  ] },
 ];
 async function downloadEventTemplate() {
   let X;
@@ -831,12 +861,13 @@ function NewEventView({ onSubmit, onCancel, defaultSeller }) {
       const rows = parseEventFormSheet(wb);
       if (!rows.length) { setFormErr('No se encontraron respuestas (Familia / Pregunta / Respuesta) en el Excel.'); return; }
       setFormRows(rows); setFormName(file.name);
-      // Prellenado automático desde el formulario
+      // Prellenado automático desde el formulario (las preguntas mapean a campos del evento)
       const ans = (q) => { const r = rows.find(x => norm(x.pregunta).includes(norm(q))); return r ? r.respuesta : ''; };
+      const nombre = ans('nombre del evento'); if (nombre) setName(nombre);
+      const empresa = ans('empresa'); if (empresa) setClient(empresa);
       const lugar = ans('lugar del evento'); if (lugar) setVenue(lugar);
       const pax = ans('cantidad de personas'); if (pax) { const n = pax.replace(/[^0-9]/g, ''); if (n) setAttendees(n); }
-      const dRow = rows.find(x => norm(x.familia) === 'evento' && norm(x.pregunta) === 'dia');
-      const d = parseLooseDate(dRow ? dRow.respuesta : ''); if (d) setEventDate(d);
+      const d = parseLooseDate(ans('dia del evento')); if (d) setEventDate(d);
     } catch (err) { setFormErr('No se pudo leer el Excel: ' + err.message); }
   }
 
@@ -858,7 +889,7 @@ function NewEventView({ onSubmit, onCancel, defaultSeller }) {
             <div className="form-file-ic">📄</div>
             <div>
               <div className="form-file-t">{formRows ? `Formulario cargado: ${formName}` : 'Formulario del evento (Excel) — obligatorio'}</div>
-              <div className="form-file-s">{formRows ? `${formRows.length} respuestas leídas · puedes reemplazarlo` : '1) Descarga la plantilla y envíala al cliente para que la complete. 2) Sube el Excel lleno (.xlsx): se extraen fecha, lugar y asistentes, y se guarda el brief.'}</div>
+              <div className="form-file-s">{formRows ? `${formRows.length} respuestas leídas · puedes reemplazarlo` : '1) Descarga la plantilla y envíala al cliente. 2) Sube el Excel lleno (.xlsx): autocompleta nombre, cliente, fecha, lugar y asistentes, y guarda el brief. La forma de pago, el monto y el vendedor los completas tú abajo.'}</div>
             </div>
           </div>
           <div className="form-file-actions">
