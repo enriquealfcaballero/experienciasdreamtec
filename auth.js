@@ -66,6 +66,8 @@
     + ".dtauth-msg.err{color:oklch(0.50 0.18 25)}"
     + ".dtauth-msg.ok{color:oklch(0.45 0.13 150)}"
     + ".dtauth-hint{font-size:11px;color:oklch(0.62 0.02 260);margin-top:14px;line-height:1.5}"
+    + ".dtauth-link{background:none;border:0;color:oklch(0.55 0.13 264);font-size:12px;cursor:pointer;text-decoration:underline;font-family:inherit;padding:2px 4px}"
+    + ".dtauth-link:hover{color:oklch(0.45 0.15 264)}"
     + "#dtauth-chip{position:fixed;top:12px;right:12px;z-index:2147482000;display:flex;align-items:center;gap:10px;background:#fff;border:1px solid oklch(0.90 0.01 260);border-radius:100px;padding:5px 6px 5px 14px;font-family:'IBM Plex Sans',sans-serif;font-size:12px;box-shadow:0 2px 8px oklch(0 0 0 /.06)}"
     + "#dtauth-chip b{font-weight:600}#dtauth-chip .dtauth-chip-area{color:oklch(0.42 0.02 260)}"
     + "#dtauth-chip .dtauth-adm{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.08em;text-transform:uppercase;background:oklch(0.55 0.13 264);color:#fff;padding:2px 6px;border-radius:100px}"
@@ -91,12 +93,16 @@
       + '  </div>'
       + '  <form id="dtauth-form">'
       + '    <div class="dtauth-field reg-only" style="display:none"><label>Nombre completo</label><input name="full_name" type="text" autocomplete="name" placeholder="Tu nombre"/></div>'
-      + '    <div class="dtauth-field"><label>Correo</label><input name="email" type="email" autocomplete="email" placeholder="nombre@dreamtec.cl" required/></div>'
+      + '    <div class="dtauth-field email-field"><label>Correo</label><input name="email" type="email" autocomplete="email" placeholder="nombre@dreamtec.cl" required/></div>'
       + '    <div class="dtauth-field reg-only" style="display:none"><label>Área</label><select name="area">' + AREAS.map(function (a) { return '<option value="' + a.key + '">' + a.label + '</option>'; }).join("") + '</select></div>'
-      + '    <div class="dtauth-field"><label>Contraseña</label><input name="password" type="password" autocomplete="current-password" placeholder="••••••••" minlength="6" required/></div>'
+      + '    <div class="dtauth-field pass-field"><label id="dtauth-pass-label">Contraseña</label><input name="password" type="password" autocomplete="current-password" placeholder="••••••••" minlength="6" required/></div>'
       + '    <button id="dtauth-submit" type="submit">Ingresar</button>'
       + '    <div class="dtauth-msg" id="dtauth-msg"></div>'
       + '    <div id="dtauth-actions" style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"></div>'
+      + '    <div id="dtauth-links" style="margin-top:12px;text-align:center">'
+      + '      <button type="button" id="dtauth-forgot" class="dtauth-link">¿Olvidaste tu contraseña?</button>'
+      + '      <button type="button" id="dtauth-back" class="dtauth-link" style="display:none">← Volver a ingresar</button>'
+      + '    </div>'
       + '  </form>'
       + '  <p class="dtauth-hint">Al registrarte eliges tu área una sola vez; luego el tablero ya sabe qué tareas puedes aprobar.</p>'
       + '</div>';
@@ -105,15 +111,28 @@
     var tabs = overlay.querySelectorAll(".dtauth-tab");
     for (var i = 0; i < tabs.length; i++) tabs[i].addEventListener("click", function () { setMode(this.getAttribute("data-mode")); });
     overlay.querySelector("#dtauth-form").addEventListener("submit", onSubmit);
+    overlay.querySelector("#dtauth-forgot").addEventListener("click", function () { setMode("recover"); });
+    overlay.querySelector("#dtauth-back").addEventListener("click", function () { setMode("login"); });
   }
   function setMode(m) {
     mode = m;
+    var isReg = m === "register", isRecover = m === "recover", isNew = m === "newpass";
+    var tabsEl = overlay.querySelector(".dtauth-tabs"); if (tabsEl) tabsEl.style.display = (isRecover || isNew) ? "none" : "flex";
     var tabs = overlay.querySelectorAll(".dtauth-tab");
     for (var i = 0; i < tabs.length; i++) tabs[i].classList.toggle("on", tabs[i].getAttribute("data-mode") === m);
     var regs = overlay.querySelectorAll(".reg-only");
-    for (var j = 0; j < regs.length; j++) regs[j].style.display = (m === "register") ? "flex" : "none";
-    overlay.querySelector("#dtauth-submit").textContent = (m === "register") ? "Crear cuenta" : "Ingresar";
-    overlay.querySelector('input[name="password"]').setAttribute("autocomplete", m === "register" ? "new-password" : "current-password");
+    for (var j = 0; j < regs.length; j++) regs[j].style.display = isReg ? "flex" : "none";
+    // email visible salvo al fijar nueva contraseña; password visible salvo al pedir el enlace
+    var emailField = overlay.querySelector(".email-field"); emailField.style.display = isNew ? "none" : "flex";
+    var passField = overlay.querySelector(".pass-field"); passField.style.display = isRecover ? "none" : "flex";
+    var emailInput = overlay.querySelector('input[name="email"]'); emailInput.required = !isNew;
+    var passInput = overlay.querySelector('input[name="password"]'); passInput.required = !isRecover;
+    passInput.setAttribute("autocomplete", (isReg || isNew) ? "new-password" : "current-password");
+    overlay.querySelector("#dtauth-pass-label").textContent = isNew ? "Nueva contraseña" : "Contraseña";
+    var labels = { login: "Ingresar", register: "Crear cuenta", recover: "Enviar enlace de recuperación", newpass: "Guardar nueva contraseña" };
+    overlay.querySelector("#dtauth-submit").textContent = labels[m] || "Ingresar";
+    overlay.querySelector("#dtauth-forgot").style.display = (m === "login") ? "inline-block" : "none";
+    overlay.querySelector("#dtauth-back").style.display = isRecover ? "inline-block" : "none";
     setMsg("", "");
   }
   function setMsg(t, cls) { clearActions(); var el = overlay.querySelector("#dtauth-msg"); el.textContent = t; el.className = "dtauth-msg " + (cls || ""); }
@@ -158,7 +177,34 @@
     var email = f.email.value.trim().toLowerCase();
     var password = f.password.value;
     var btn = overlay.querySelector("#dtauth-submit");
+
+    // Fijar nueva contraseña (volviste desde el enlace de recuperación)
+    if (mode === "newpass") {
+      if (!password || password.length < 6) { setMsg("La contraseña debe tener al menos 6 caracteres.", "err"); return; }
+      btn.disabled = true; setMsg("Guardando tu nueva contraseña…", "");
+      DT.client.auth.updateUser({ password: password }).then(function (r) {
+        btn.disabled = false;
+        if (r.error) { setMsg(translateErr(r.error.message), "err"); return; }
+        DT._recovery = false;
+        setMsg("Listo: tu contraseña fue actualizada. Ya puedes ingresar.", "ok");
+        DT.client.auth.signOut().then(function () { cleanUrl(); setMode("login"); });
+      });
+      return;
+    }
+
     if (!domainOk(email)) { setMsg("Solo se permiten correos @dreamtec.cl o @ofimundo.cl.", "err"); return; }
+
+    // Pedir enlace de recuperación
+    if (mode === "recover") {
+      btn.disabled = true; setMsg("Enviando enlace de recuperación…", "");
+      DT.client.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + window.location.pathname }).then(function (r) {
+        btn.disabled = false;
+        if (r.error) { setMsg(translateErr(r.error.message), "err"); return; }
+        setMsg("Si existe una cuenta con " + email + ", te enviamos un enlace para restablecer la contraseña. Revisa tu bandeja y el spam.", "ok");
+      });
+      return;
+    }
+
     btn.disabled = true;
     setMsg(mode === "register" ? "Creando cuenta…" : "Ingresando…", "");
 
@@ -234,6 +280,7 @@
     });
   }
   function onSignedIn(session) {
+    if (DT._recovery) return; // en recuperación mostramos el form de nueva contraseña, no la app
     if (DT.profile || DT._loadingProfile) return; // evita doble carga (INITIAL_SESSION + getSession)
     DT._loadingProfile = true;
     DT.user = session.user;
@@ -270,6 +317,13 @@
     injectCss();
     DT.client = window.supabase.createClient(CFG.url, CFG.anonKey);
     DT.client.auth.onAuthStateChange(function (event, session) {
+      if (event === "PASSWORD_RECOVERY") {
+        DT._recovery = true;
+        if (!overlay) buildOverlay();
+        setMode("newpass");
+        setMsg("Define tu nueva contraseña para terminar la recuperación.", "");
+        return;
+      }
       if (session && session.user) {
         try { DT.client.realtime.setAuth(session.access_token); } catch (e) {} // mantener token de realtime al refrescar
         if (!DT.profile) onSignedIn(session);
@@ -280,11 +334,18 @@
       }
     });
     DT.client.auth.getSession().then(function (res) {
+      var url = getUrlError();
+      if (url.type === "recovery") { // volviste desde el enlace de recuperación
+        DT._recovery = true;
+        if (!overlay) buildOverlay();
+        setMode("newpass");
+        setMsg("Define tu nueva contraseña para terminar la recuperación.", "");
+        return;
+      }
       if (res.data && res.data.session) { onSignedIn(res.data.session); cleanUrl(); }
       else {
         buildOverlay();
-        var ue = getUrlError();
-        if (ue.error || ue.error_description || ue.error_code) { setMsg(translateUrlErr(ue), "err"); }
+        if (url.error || url.error_description || url.error_code) { setMsg(translateUrlErr(url), "err"); }
         cleanUrl();
       }
     });
