@@ -1,0 +1,2 @@
+# Librerías vendorizadas: tratar como binario, sin conversión de saltos de línea.
+vendor/** -text
