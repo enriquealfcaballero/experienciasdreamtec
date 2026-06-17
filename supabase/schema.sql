@@ -49,7 +49,8 @@ insert into public.task_areas (task_id, area) values
 ('t22','finanzas'),('t23','finanzas'),('t24','marketing'),('t25','marketing'),('t_go','facturacion'),
 ('t26','mesa'),('t27','comercial'),('t28','comercial'),('t_cont','comercial'),
 ('t29','logistica'),('t30','bodega'),('t31','marketing'),
-('t32','contabilidad'),('t33','facturacion'),('t33b','contabilidad'),('t34','facturacion')
+('t32','contabilidad'),('t33','facturacion'),('t33b','contabilidad'),('t34','facturacion'),
+('t_brief_anf','comercial')
 on conflict (task_id) do update set area = excluded.area;
 
 -- ---------- Estado de tareas (una fila = tarea marcada) ----------
@@ -153,9 +154,10 @@ create policy ts_select on public.task_status for select to authenticated using 
 drop policy if exists ts_insert on public.task_status;
 create policy ts_insert on public.task_status for insert to authenticated
   with check (public.is_admin() or public.my_area() = (select area from public.task_areas where task_id = task_status.task_id));
+-- Deshacer (borrar) una marca: SOLO admin. Los miembros marcan pero no desmarcan.
 drop policy if exists ts_delete on public.task_status;
 create policy ts_delete on public.task_status for delete to authenticated
-  using (public.is_admin() or public.my_area() = (select area from public.task_areas where task_id = task_status.task_id));
+  using (public.is_admin());
 
 -- eventos: ven todos los autenticados; crea Ventas/admin; elimina solo admin
 drop policy if exists eventos_select_anon on public.eventos;

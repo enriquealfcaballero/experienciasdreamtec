@@ -211,6 +211,38 @@ a:hover { text-decoration: underline; }
 .tsk-marker-undo:hover { background: var(--bg-soft); color: var(--ink); }
 .tsk-day { font-family: var(--font-mono); font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 7px; border-radius: 3px; background: var(--bg-soft); border: 1px solid var(--line-soft); color: var(--ink-soft); }
 .stg-empty { padding: 16px 18px; font-size: 12.5px; color: var(--ink-mute); font-style: italic; }
+/* Filtro por área */
+.area-filter { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 16px; }
+.area-filter-l { font-size: 12px; color: var(--ink-mute); font-weight: 600; margin-right: 2px; }
+.area-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; color: var(--ink-soft); background: var(--bg-card); border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; cursor: pointer; transition: all .12s; }
+.area-chip:hover { border-color: var(--accent); color: var(--ink); }
+.area-chip.on { background: var(--ink); color: var(--bg-card); border-color: var(--ink); }
+.area-chip-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+/* Adjuntos por tarea */
+.tsk-attach { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 9px; }
+.att-chip { display: inline-flex; align-items: center; gap: 4px; background: var(--bg-soft); border: 1px solid var(--line-soft); border-radius: 6px; padding: 2px 4px 2px 8px; max-width: 100%; }
+.att-name { background: none; border: 0; cursor: pointer; font-size: 11.5px; color: var(--ink-soft); padding: 2px 2px; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.att-name:hover { color: var(--accent); text-decoration: underline; }
+.att-x { background: none; border: 0; cursor: pointer; color: var(--ink-mute); font-size: 14px; line-height: 1; padding: 0 4px; border-radius: 3px; }
+.att-x:hover { color: var(--crit); background: var(--bg-card); }
+.att-add { display: inline-flex; align-items: center; font-size: 11.5px; font-weight: 600; color: var(--accent); border: 1px dashed var(--accent); border-radius: 6px; padding: 4px 10px; cursor: pointer; }
+.att-add:hover { background: var(--bg-soft); }
+/* Subida del formulario Excel */
+.form-file { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; padding: 16px 18px; margin-bottom: 16px; border: 1.5px dashed var(--line); border-radius: var(--r-sm); background: var(--bg-soft); }
+.form-file.ok { border-style: solid; border-color: oklch(0.75 0.12 150); background: oklch(0.97 0.03 150); }
+.form-file-main { display: flex; align-items: center; gap: 12px; }
+.form-file-ic { font-size: 22px; }
+.form-file-t { font-weight: 700; font-size: 13.5px; color: var(--ink); }
+.form-file-s { font-size: 12px; color: var(--ink-mute); margin-top: 2px; max-width: 460px; }
+.form-preview, .evt-form { margin-bottom: 16px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--bg-card); overflow: hidden; }
+.form-preview > summary, .evt-form > summary { cursor: pointer; padding: 12px 16px; font-weight: 600; font-size: 13px; color: var(--ink-soft); user-select: none; }
+.form-preview > summary:hover, .evt-form > summary:hover { background: var(--bg-soft); }
+.form-preview-fam, .evt-form-body .form-preview-fam { padding: 8px 16px 12px; border-top: 1px solid var(--line-soft); }
+.form-preview-fam-t { font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--accent); margin-bottom: 6px; }
+.form-preview-row { display: flex; gap: 12px; padding: 4px 0; font-size: 12.5px; border-bottom: 1px dotted var(--line-soft); }
+.form-preview-row:last-child { border-bottom: 0; }
+.form-preview-q { flex: 1; color: var(--ink-soft); }
+.form-preview-a { flex: 1; color: var(--ink); font-weight: 600; }
 .loading-wrap { display: flex; align-items: center; gap: 12px; max-width: 1440px; margin: 80px auto; padding: 0 32px; color: var(--ink-mute); font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; }
 .spin { width: 22px; height: 22px; border: 2.5px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -283,9 +315,9 @@ window.GANTT_DATA = (function () {
     { id: 't01', stage: 'pre', area: 'comercial', label: 'Generar cotización',         desc: 'Ventas prepara propuesta económica y técnica para el cliente.', start: 0, end: 0, pago: 'ambos' },
     { id: 't02', stage: 'pre', area: 'comercial', label: 'Negociación con cliente',    desc: 'Iteración de propuesta y alcance hasta llegar a acuerdo.', start: 0, end: 0, pago: 'ambos', prereq: ['t01'] },
     { id: 't03', stage: 'pre', area: 'comercial', label: 'Definir forma de pago',      desc: 'Acordar con cliente si la operación será Contado o Crédito. Se define ANTES del cierre comercial.', start: 0, end: 0, pago: 'ambos', prereq: ['t02'] },
-    { id: 't04', stage: 'cierre', area: 'comercial', label: 'Recibir cotización aprobada',     desc: 'Cliente confirma cotización por escrito.', start: 0, end: 0, pago: 'ambos', prereq: ['t03'] },
-    { id: 't05', stage: 'cierre', area: 'comercial', label: 'Envío de NV a Contabilidad',      desc: 'Ventas envía la Nota de Venta a Contabilidad para revisión. La NV es la receta que dirige toda la operatoria del evento, por lo que debe estar completa.', start: 0, end: 0, pago: 'ambos', prereq: ['t04'] },
-    { id: 't06', stage: 'cierre', area: 'comercial', label: 'Envío de contrato y firma cliente', desc: 'Ventas envía el contrato al cliente y se asegura de que sea firmado. Sin firma no avanza a la siguiente etapa.', start: 0, end: 0, pago: 'ambos', prereq: ['t04'] },
+    { id: 't04', stage: 'cierre', area: 'comercial', label: 'Recibir cotización aprobada',     desc: 'Cliente confirma cotización por escrito. Ventas debe adjuntar la cotización aprobada para poder avanzar y dejarla guardada.', start: 0, end: 0, pago: 'ambos', prereq: ['t03'], attach: { min: 1, kind: 'doc', label: 'la cotización aprobada' } },
+    { id: 't05', stage: 'cierre', area: 'comercial', label: 'Envío de NV a Contabilidad',      desc: 'Ventas envía la Nota de Venta a Contabilidad para revisión. La NV es la receta que dirige toda la operatoria del evento, por lo que debe estar completa. Ventas debe adjuntar la NV para poder avanzar y dejarla guardada.', start: 0, end: 0, pago: 'ambos', prereq: ['t04'], attach: { min: 1, kind: 'doc', label: 'la Nota de Venta (NV)' } },
+    { id: 't06', stage: 'cierre', area: 'comercial', label: 'Envío de contrato y firma cliente', desc: 'Ventas envía el contrato al cliente y se asegura de que sea firmado. Sin firma no avanza a la siguiente etapa. Ventas debe adjuntar el contrato firmado para poder avanzar y dejarlo guardado.', start: 0, end: 0, pago: 'ambos', prereq: ['t04'], attach: { min: 1, kind: 'doc', label: 'el contrato firmado' } },
     { id: 't11', stage: 'val', area: 'contabilidad', label: 'Revisar NV (receta de la operación)', desc: 'Contabilidad revisa que la Nota de Venta esté completa. Si falta cualquier dato, la NV se devuelve a Ventas para completar.', start: 1, end: 1, pago: 'ambos', prereq: ['t05'] },
     { id: 't11b',stage: 'val', area: 'comercial',    label: 'Completar NV si vuelve de Contabilidad', desc: 'Si Contabilidad detecta información faltante en la NV, Ventas debe completarla y reenviarla.', start: 1, end: 2, pago: 'ambos', prereq: ['t11'] },
     { id: 't12', stage: 'val', area: 'contabilidad', label: 'Aprobar NV y validar factibilidad',  desc: 'Con la NV completa, Contabilidad la aprueba y valida la factibilidad. Sólo con NV aprobada se libera la operación al resto de las áreas.', start: 2, end: 2, pago: 'ambos', prereq: ['t11b'] },
@@ -302,25 +334,23 @@ window.GANTT_DATA = (function () {
     { id: 't20',  stage: 'plan', area: 'compras', label: 'Gestionar insumos',                desc: 'Compra y seguimiento de los consumibles e insumos del evento.', start: 2, end: 4, pago: 'ambos', prereq: ['t21b'] },
     { id: 't21',  stage: 'plan', area: 'compras', label: 'Gestionar activos no existentes',  desc: 'Adquisición o arriendo de activos que no están en bodega.', start: 2, end: 4, pago: 'ambos', prereq: ['t21b'] },
     { id: 't13', stage: 'plan', area: 'logistica', label: 'Preparar equipos / productos', desc: 'Selección y preparación del material a despachar.', start: 3, end: 5, pago: 'ambos', prereq: ['t12'] },
-    { id: 't16', stage: 'plan', area: 'logistica', label: 'Coordinar retiro pre-evento',  desc: 'Agendar retiro post-evento desde la planificación.', start: 4, end: 4, pago: 'ambos', prereq: ['t12'] },
     { id: 't14', stage: 'plan', area: 'logistica', label: 'Guía de salida',               desc: 'Documento formal de despacho con detalle de activos.', start: 5, end: 5, pago: 'ambos', prereq: ['t13'] },
-    { id: 't15', stage: 'plan', area: 'logistica', label: 'Coordinar despacho',           desc: 'Definir ruta, transporte y ventana horaria. Requiere OC de transporte emitida.', start: 6, end: 6, pago: 'ambos', prereq: ['t14','t21b'] },
+    { id: 't15', stage: 'plan', area: 'logistica', label: 'Coordinar despacho y retiro',  desc: 'Logística coordina en un solo trato con el proveedor de transporte tanto el despacho (envío) al sitio como el retiro post-evento: define ruta, transporte, ventanas horarias de ida y de retorno, y deja agendado el retiro. Requiere la OC de transporte emitida y la guía de salida lista.', start: 6, end: 6, pago: 'ambos', prereq: ['t14','t21b'] },
     { id: 't17', stage: 'plan', area: 'mesa', label: 'Coordinar anfitriones',        desc: 'Convocar, briefing y confirmación de anfitriones. Requiere OC emitida.', start: 3, end: 5, pago: 'ambos', prereq: ['t21b'] },
     { id: 't19', stage: 'plan', area: 'mesa', label: 'Coordinar técnicos y montaje', desc: 'Asignación y briefing del equipo técnico, plan de montaje y tiempos. Requiere OC emitida.', start: 3, end: 6, pago: 'ambos', prereq: ['t21b'] },
     { id: 't_bod_recep', stage: 'plan', area: 'bodega', label: 'Recepción de insumos y activos (D−1)', desc: 'Bodega recibe los insumos y activos comprados. Plazo máximo: el día anterior al evento (D−1).', start: 4, end: 6, pago: 'ambos', prereq: ['t20','t21'] },
     { id: 't_orq', stage: 'plan', area: 'comercial', label: 'Orquestar el evento', desc: 'El Vendedor hace seguimiento a todas las coordinaciones y se asegura de que las cosas ocurran a tiempo.', start: 2, end: 6, pago: 'ambos', prereq: ['t12'] },
-    { id: 't22', stage: 'plan', area: 'finanzas', label: 'Pago a proveedores', desc: 'Finanzas ejecuta pagos programados a proveedores del evento.', start: 3, end: 6, pago: 'ambos', prereq: ['t21b'] },
-    { id: 't23', stage: 'plan', area: 'finanzas', label: 'Revisión de pagos',  desc: 'Conciliación de pagos a proveedores vs presupuesto del evento.', start: 5, end: 6, pago: 'ambos', prereq: ['t22'] },
-    { id: 't24', stage: 'plan', area: 'marketing', label: 'Brief y coordinación foto / video', desc: 'Marketing hace el briefing creativo, coordina la grabación y luego la entrega y postproducción.', start: 3, end: 6, pago: 'ambos', prereq: ['t21b'] },
+    { id: 't_brief_anf', stage: 'plan', area: 'comercial', label: 'Brief con el anfitrión', desc: 'Ventas hace el brief al anfitrión: qué debe hacer durante el evento y la dinámica que buscamos. Si es branding, seguir a la marca en IG antes de subir al escenario; si es pagado, invitar a la gente a subir. Se definen las restricciones y los mensajes clave que el anfitrión debe transmitir.', start: 6, end: 6, pago: 'ambos', prereq: ['t17'] },
+    { id: 't24', stage: 'plan', area: 'marketing', label: 'Brief y coordinación foto / video', desc: 'Marketing hace el briefing creativo, coordina la grabación, la entrega y postproducción. En el brief se debe indicar a Marketing el alcance del video a publicar (uso interno, RRSS, pauta), a quién se debe mencionar y etiquetar (productora o marca), el tono y los entregables esperados.', start: 3, end: 6, pago: 'ambos', prereq: ['t21b'] },
     { id: 't25', stage: 'plan', area: 'marketing', label: 'Ploteo y gráfica', desc: 'Marketing diseña la gráfica, manda a imprimir y coordina su instalación.', start: 5, end: 6, pago: 'ambos', prereq: ['t12'] },
     { id: 't_go', stage: 'plan', area: 'facturacion', label: 'Confirmación go / no-go (−72h)', desc: 'A −72h, Facturación y Cobranza confirma la ejecución del evento. Sin confirmación, no se ejecuta.', start: 4, end: 4, pago: 'ambos', prereq: ['t12'] },
     { id: 't26', stage: 'exec', area: 'mesa',      label: 'Montaje',                          desc: 'El equipo técnico asignado por Mesa de Ayuda realiza el montaje en sitio.', start: 7, end: 7, pago: 'ambos', prereq: ['t15','t_go','t_bod_recep'] },
-    { id: 't27', stage: 'exec', area: 'comercial', label: 'Validación en terreno',           desc: 'El Vendedor revisa en sitio que todo esté correctamente dispuesto antes del inicio.', start: 7, end: 7, pago: 'ambos', prereq: ['t26'] },
-    { id: 't28', stage: 'exec', area: 'comercial', label: 'Soporte durante el evento',        desc: 'Ventas opera el evento en sitio y coordina con los técnicos de Mesa de Ayuda.', start: 7, end: 7, pago: 'ambos', prereq: ['t27'] },
-    { id: 't_cont',stage: 'exec', area: 'comercial', label: 'Atender contingencias del cliente', desc: 'El Vendedor atiende contingencias o solicitudes adicionales del cliente.', start: 7, end: 7, pago: 'ambos', prereq: ['t27'] },
-    { id: 't29', stage: 'retiro', area: 'logistica', label: 'Ejecutar retiro',          desc: 'Desmontaje y retiro de equipos desde el sitio.', start: 8, end: 8, pago: 'ambos', prereq: ['t16'] },
-    { id: 't30', stage: 'retiro', area: 'bodega',    label: 'Recepción y verificación post-evento', desc: 'Bodega recibe los equipos retornados y verifica contra la guía de salida (D+1).', start: 8, end: 8, pago: 'ambos', prereq: ['t29'] },
+    { id: 't27', stage: 'exec', area: 'comercial', label: 'Validación en terreno',           desc: 'El Vendedor revisa en sitio que todo esté correctamente dispuesto antes del inicio. Debe adjuntar al menos 3 fotos del montaje como evidencia para poder dar por completada la tarea.', start: 7, end: 7, pago: 'ambos', prereq: ['t26'], attach: { min: 3, kind: 'foto', label: 'fotos del montaje en terreno' } },
+    { id: 't29', stage: 'retiro', area: 'logistica', label: 'Ejecutar retiro',          desc: 'Desmontaje y retiro de equipos desde el sitio, según lo coordinado con el proveedor de transporte.', start: 8, end: 8, pago: 'ambos', prereq: ['t15'] },
+    { id: 't30', stage: 'retiro', area: 'bodega',    label: 'Recepción y verificación post-evento', desc: 'Bodega recibe los equipos retornados y verifica contra la guía de salida (D+1). Debe adjuntar las fotos del ingreso a bodega como evidencia para poder dar por completada la recepción.', start: 8, end: 8, pago: 'ambos', prereq: ['t29'], attach: { min: 1, kind: 'foto', label: 'fotos del ingreso a bodega' } },
     { id: 't31', stage: 'retiro', area: 'marketing', label: 'Subir a RRSS',             desc: 'Publicación de contenido capturado durante el evento.', start: 8, end: 9, pago: 'ambos' },
+    { id: 't22', stage: 'cierreA', area: 'finanzas', label: 'Pago a proveedores', desc: 'En el cierre del evento, Finanzas ejecuta los pagos a los proveedores del evento según las OCs emitidas.', start: 8, end: 9, pago: 'ambos', prereq: ['t30'] },
+    { id: 't23', stage: 'cierreA', area: 'finanzas', label: 'Revisión de pagos a proveedores', desc: 'Finanzas concilia los pagos a proveedores contra el presupuesto del evento y cierra el detalle financiero.', start: 9, end: 9, pago: 'ambos', prereq: ['t22'] },
     { id: 't32', stage: 'cierreA', area: 'contabilidad', label: 'Conciliación del evento', desc: 'En D+1/D+2 Contabilidad consolida resultados: gastos efectivos vs presupuesto y margen final.', start: 8, end: 9, pago: 'ambos', prereq: ['t30'] },
     { id: 't33',  stage: 'cierreA', area: 'facturacion',  label: 'Emitir factura (D+1)',          desc: 'Crédito: Facturación y Cobranza emite y envía la factura al día siguiente del evento.', start: 8, end: 8, pago: 'credito', prereq: ['t30'] },
     { id: 't33b', stage: 'cierreA', area: 'contabilidad', label: 'Registro contable de factura', desc: 'Crédito: Contabilidad registra la factura emitida y la concilia contra la NV.', start: 8, end: 9, pago: 'credito', prereq: ['t33'] },
@@ -337,12 +367,15 @@ window.GANTT_DATA = (function () {
 <script>window.DT_HIDE_CHIP = true;</script><!-- el Tablero muestra el usuario en su propia topbar; evita que auth.js pinte el chip si el perfil carga antes que React -->
 <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js" crossorigin></script>
 <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script><!-- lectura del formulario Excel -->
 <script src="https://cdn.jsdelivr.net/npm/@babel/standalone/babel.min.js"></script>
 
 <script type="text/babel" data-presets="react">
 const { useState: useS, useEffect: useE, useMemo: useM } = React;
 const TABLE_EV = 'eventos';
 const TABLE_TS = 'task_status';
+const TABLE_AT = 'task_attachments';
+const BUCKET = 'evidencias';
 
 function uid() { return 'e' + Math.random().toString(36).slice(2, 9); }
 function fmtDate(iso, opts) { if (!iso) return '—'; return new Date(iso).toLocaleDateString('es-CL', opts || { day: '2-digit', month: 'short', year: 'numeric' }); }
@@ -358,8 +391,48 @@ function fmtRel(iso) {
 }
 function todayLocal() { const d = new Date(); d.setHours(0, 0, 0, 0); return d; }
 function daysBetween(a, b) { const A = new Date(a); A.setHours(0,0,0,0); const B = new Date(b); B.setHours(0,0,0,0); return Math.round((B - A) / 86400000); }
-function taskDate(eventDateISO, taskDay) { const d = new Date(eventDateISO); d.setHours(0,0,0,0); d.setDate(d.getDate() + (taskDay - 7)); return d; }
+// Cronograma anclado a la creación: las tareas de preparación (días 0..EVENT_DAY) se reparten
+// entre la fecha de creación del evento y la fecha del evento, usando el tiempo realmente disponible.
+// Las tareas pegadas al evento (día >= EVENT_DAY) se mantienen relativas a la fecha del evento.
+function taskDate(event, taskDay) {
+  const EVENT_DAY = (window.GANTT_DATA && window.GANTT_DATA.EVENT_DAY) || 7;
+  const ev = new Date(event.eventDate); ev.setHours(0, 0, 0, 0);
+  let created;
+  if (event.createdAt) { created = new Date(event.createdAt); created.setHours(0, 0, 0, 0); }
+  else { created = new Date(ev); created.setDate(ev.getDate() - EVENT_DAY); } // compat eventos sin createdAt
+  if (created > ev) created = new Date(ev); // evento muy próximo: no programar antes de hoy/creación
+  if (taskDay >= EVENT_DAY) { const d = new Date(ev); d.setDate(d.getDate() + (taskDay - EVENT_DAY)); return d; }
+  const d = new Date(created.getTime() + (ev.getTime() - created.getTime()) * (taskDay / EVENT_DAY));
+  d.setHours(0, 0, 0, 0); return d;
+}
 function applicableTasks(paymentMode) { return window.GANTT_DATA.TASKS.filter(t => t.pago === 'ambos' || t.pago === paymentMode); }
+// --- Lectura del formulario Excel del evento (SheetJS) ---
+function norm(s) { return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim(); }
+function parseEventFormSheet(wb) {
+  const out = [];
+  wb.SheetNames.forEach(name => {
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, raw: false, defval: '' });
+    rows.forEach(r => {
+      const familia = (r[0] || '').toString().trim();
+      const pregunta = (r[1] || '').toString().trim();
+      const respuesta = (r[2] || '').toString().trim();
+      const notas = (r[3] || '').toString().trim();
+      if (!pregunta) return;
+      if (norm(familia) === 'familia' || norm(pregunta) === 'pregunta') return; // fila de cabecera
+      out.push({ familia, pregunta, respuesta, notas });
+    });
+  });
+  return out;
+}
+function parseLooseDate(s) {
+  if (!s) return ''; s = String(s).trim();
+  let m = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/);
+  if (m) { let y = m[3]; if (y.length === 2) y = '20' + y; return `${y}-${String(m[2]).padStart(2, '0')}-${String(m[1]).padStart(2, '0')}`; }
+  m = s.match(/^(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})$/);
+  if (m) return `${m[1]}-${String(m[2]).padStart(2, '0')}-${String(m[3]).padStart(2, '0')}`;
+  const dt = new Date(s); if (!isNaN(dt)) return dt.toISOString().slice(0, 10);
+  return '';
+}
 function parseAmount(a) { if (a == null) return 0; const n = parseInt(String(a).replace(/[^0-9]/g, ''), 10); return isNaN(n) ? 0 : n; }
 function fmtCLP(n) { try { return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(n); } catch (e) { return '$' + n; } }
 function monthKey(iso) { const d = new Date(iso); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); }
@@ -378,8 +451,8 @@ function statusFor(task, event) {
   const today = todayLocal();
   const st = event.taskStatus?.[task.id];
   if (st?.done) return { kind: 'done', st };
-  const startD = taskDate(event.eventDate, task.start);
-  const endD = taskDate(event.eventDate, task.end);
+  const startD = taskDate(event, task.start);
+  const endD = taskDate(event, task.end);
   if (today > endD) return { kind: 'late', startD, endD, st };
   if (today >= startD) return { kind: 'now', startD, endD, st };
   return { kind: 'todo', startD, endD, st };
@@ -396,6 +469,7 @@ function App({ profile }) {
 
   const [meta, setMeta] = useS({});          // id -> metadata
   const [statuses, setStatuses] = useS({});   // eventId -> { taskId: {done,by,at} }
+  const [attachments, setAttachments] = useS({}); // eventId -> { taskId: [ {id,name,path,by,at} ] }
   const [loading, setLoading] = useS(true);
   const [loadErr, setLoadErr] = useS(null);
   const [conn, setConn] = useS('connecting');
@@ -406,9 +480,10 @@ function App({ profile }) {
   const [usersLoading, setUsersLoading] = useS(false);
 
   async function fetchAll() {
-    const [evRes, tsRes] = await Promise.all([
+    const [evRes, tsRes, atRes] = await Promise.all([
       sb.from(TABLE_EV).select('id, data'),
-      sb.from(TABLE_TS).select('event_id, task_id, marked_by_email, marked_at')
+      sb.from(TABLE_TS).select('event_id, task_id, marked_by_email, marked_at'),
+      sb.from(TABLE_AT).select('id, event_id, task_id, name, path, uploaded_by_email, uploaded_at')
     ]);
     if (evRes.error) { setLoadErr(evRes.error.message); setConn('error'); setLoading(false); return; }
     if (tsRes.error) { setLoadErr(tsRes.error.message); setConn('error'); setLoading(false); return; }
@@ -417,7 +492,11 @@ function App({ profile }) {
       st[r.event_id] = st[r.event_id] || {};
       st[r.event_id][r.task_id] = { done: true, by: r.marked_by_email || '—', at: r.marked_at };
     });
-    setMeta(m); setStatuses(st); setLoading(false);
+    const at = {}; (atRes.data || []).forEach(r => {
+      at[r.event_id] = at[r.event_id] || {};
+      (at[r.event_id][r.task_id] = at[r.event_id][r.task_id] || []).push({ id: r.id, name: r.name, path: r.path, by: r.uploaded_by_email || '—', at: r.uploaded_at });
+    });
+    setMeta(m); setStatuses(st); setAttachments(at); setLoading(false);
     setConn(c => (c === 'saving' ? c : 'live'));
   }
 
@@ -427,6 +506,7 @@ function App({ profile }) {
     const ch = sb.channel('dt-rt')
       .on('postgres_changes', { event: '*', schema: 'public', table: TABLE_EV }, () => { if (alive) fetchAll(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: TABLE_TS }, () => { if (alive) fetchAll(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: TABLE_AT }, () => { if (alive) fetchAll(); })
       .subscribe((s) => { if (alive && s === 'SUBSCRIBED') setConn(c => (c === 'error' ? c : 'live')); });
     return () => { alive = false; sb.removeChannel(ch); };
   }, []);
@@ -440,7 +520,7 @@ function App({ profile }) {
 
   function createEvent(d) {
     const id = uid();
-    const data = { name: d.name, client: d.client, eventDate: d.eventDate, paymentMode: d.paymentMode, seller: d.seller, venue: d.venue, attendees: d.attendees, amount: d.amount, notes: d.notes, createdAt: new Date().toISOString() };
+    const data = { name: d.name, client: d.client, eventDate: d.eventDate, paymentMode: d.paymentMode, seller: d.seller, venue: d.venue, attendees: d.attendees, amount: d.amount, notes: d.notes, formulario: d.formulario || [], createdAt: new Date().toISOString() };
     setMeta(s => ({ ...s, [id]: { ...data, id } }));
     setView('detail'); setSelectedEventId(id);
     setOpenStages(s => ({ ...s, [id]: ['pre', 'cierre'] }));
@@ -454,6 +534,11 @@ function App({ profile }) {
   function toggleTask(eventId, task) {
     if (!canMark(task)) return;
     const done = !!statuses[eventId]?.[task.id];
+    if (done && !isAdmin) { alert('Solo un administrador puede deshacer una tarea ya marcada.'); return; }
+    if (!done && task.attach?.min) {
+      const have = (attachments[eventId]?.[task.id] || []).length;
+      if (have < task.attach.min) { alert(`Para completar esta tarea debes adjuntar ${task.attach.min === 1 ? '' : task.attach.min + ' '}${task.attach.label} antes de marcarla.`); return; }
+    }
     setConn('saving');
     if (done) {
       setStatuses(s => { const ev = { ...(s[eventId] || {}) }; delete ev[task.id]; return { ...s, [eventId]: ev }; });
@@ -467,6 +552,31 @@ function App({ profile }) {
         if (error) { setConn('error'); alert('No se pudo marcar: ' + error.message); fetchAll(); } else setConn('live');
       });
     }
+  }
+
+  async function uploadAttachment(eventId, task, file) {
+    if (!canMark(task) || !file) return;
+    setConn('saving');
+    const safe = file.name.replace(/[^\w.\-]+/g, '_');
+    const path = `${eventId}/${task.id}/${Date.now()}-${safe}`;
+    const up = await sb.storage.from(BUCKET).upload(path, file, { upsert: false, contentType: file.type || undefined });
+    if (up.error) { setConn('error'); alert('No se pudo subir el archivo: ' + up.error.message); return; }
+    const { error } = await sb.from(TABLE_AT).insert({ event_id: eventId, task_id: task.id, name: file.name, path, mime: file.type, size: file.size, uploaded_by: window.DT.user.id, uploaded_by_email: myEmail });
+    if (error) { setConn('error'); await sb.storage.from(BUCKET).remove([path]); alert('No se pudo registrar el adjunto: ' + error.message); }
+    else { setConn('live'); fetchAll(); }
+  }
+  async function removeAttachment(eventId, taskId, row) {
+    if (!isAdmin && row.by !== myEmail) { alert('Solo quien subió el archivo (o un administrador) puede eliminarlo.'); return; }
+    if (!confirm('¿Eliminar el adjunto "' + row.name + '"?')) return;
+    setConn('saving');
+    await sb.storage.from(BUCKET).remove([row.path]);
+    const { error } = await sb.from(TABLE_AT).delete().eq('id', row.id);
+    if (error) { setConn('error'); alert('No se pudo eliminar el adjunto: ' + error.message); } else { setConn('live'); fetchAll(); }
+  }
+  async function openAttachment(row) {
+    const { data, error } = await sb.storage.from(BUCKET).createSignedUrl(row.path, 60);
+    if (error) { alert('No se pudo abrir el archivo: ' + error.message); return; }
+    window.open(data.signedUrl, '_blank', 'noopener');
   }
 
   function deleteEvent(id) {
@@ -522,10 +632,14 @@ function App({ profile }) {
       )}
       {view === 'new' && <NewEventView onSubmit={createEvent} onCancel={() => setView('list')} defaultSeller={profile.full_name || ''} />}
       {view === 'detail' && selected && (
-        <EventDetailView event={selected} isAdmin={isAdmin} myArea={myArea} canMark={canMark}
+        <EventDetailView event={selected} isAdmin={isAdmin} myArea={myArea} myEmail={myEmail} canMark={canMark}
           openStages={openStages[selectedEventId] || []}
+          attachments={attachments[selectedEventId] || {}}
           onBack={() => { setView('list'); setSelectedEventId(null); }}
           onToggle={(task) => toggleTask(selectedEventId, task)}
+          onUpload={(task, file) => uploadAttachment(selectedEventId, task, file)}
+          onRemoveAttachment={(taskId, row) => removeAttachment(selectedEventId, taskId, row)}
+          onOpenAttachment={openAttachment}
           onDelete={() => deleteEvent(selectedEventId)}
           onStageOpen={(stageId, open) => setStageOpen(selectedEventId, stageId, open)} />
       )}
@@ -659,12 +773,68 @@ function NewEventView({ onSubmit, onCancel, defaultSeller }) {
   const [attendees, setAttendees] = useS('');
   const [amount, setAmount] = useS('');
   const [notes, setNotes] = useS('');
-  function submit(e) { e.preventDefault(); if (!name.trim() || !eventDate) return; onSubmit({ name: name.trim(), client: client.trim(), eventDate, paymentMode, seller: seller.trim(), venue: venue.trim(), attendees, amount, notes: notes.trim() }); }
+  const [formRows, setFormRows] = useS(null); // respuestas del Excel
+  const [formName, setFormName] = useS('');
+  const [formErr, setFormErr] = useS('');
+
+  async function onForm(e) {
+    const file = e.target.files && e.target.files[0]; e.target.value = '';
+    if (!file) return;
+    setFormErr('');
+    try {
+      const wb = XLSX.read(await file.arrayBuffer(), { type: 'array' });
+      const rows = parseEventFormSheet(wb);
+      if (!rows.length) { setFormErr('No se encontraron respuestas (Familia / Pregunta / Respuesta) en el Excel.'); return; }
+      setFormRows(rows); setFormName(file.name);
+      // Prellenado automático desde el formulario
+      const ans = (q) => { const r = rows.find(x => norm(x.pregunta).includes(norm(q))); return r ? r.respuesta : ''; };
+      const lugar = ans('lugar del evento'); if (lugar) setVenue(lugar);
+      const pax = ans('cantidad de personas'); if (pax) { const n = pax.replace(/[^0-9]/g, ''); if (n) setAttendees(n); }
+      const dRow = rows.find(x => norm(x.familia) === 'evento' && norm(x.pregunta) === 'dia');
+      const d = parseLooseDate(dRow ? dRow.respuesta : ''); if (d) setEventDate(d);
+    } catch (err) { setFormErr('No se pudo leer el Excel: ' + err.message); }
+  }
+
+  function submit(e) {
+    e.preventDefault();
+    if (!name.trim() || !eventDate) return;
+    if (!formRows) { setFormErr('Debes subir el formulario Excel del evento (lleno) para poder crearlo.'); return; }
+    onSubmit({ name: name.trim(), client: client.trim(), eventDate, paymentMode, seller: seller.trim(), venue: venue.trim(), attendees, amount, notes: notes.trim(), formulario: formRows });
+  }
+
+  const families = formRows ? [...new Set(formRows.map(r => r.familia).filter(Boolean))] : [];
   return (
     <>
       <div className="detail-bar"><button className="btn btn-sm btn-ghost" onClick={onCancel}>← Volver</button><span className="crumb">Eventos / <span className="crumb-cur">Nuevo evento</span></span></div>
-      <div className="ph"><div className="ph-l"><div className="ph-eye">Nuevo evento</div><h1 className="ph-title">Agregar al tablero</h1><p className="ph-sub">Al guardar, el checklist queda disponible para todas las áreas. La fecha del evento define el cronograma: <strong>Día 0</strong> cierre; <strong>−72h</strong> pago + go/no-go; <strong>D−1</strong> recepción en Bodega; <strong>D+1</strong> verificación.</p></div></div>
+      <div className="ph"><div className="ph-l"><div className="ph-eye">Nuevo evento</div><h1 className="ph-title">Agregar al tablero</h1><p className="ph-sub">Sube el <strong>formulario Excel</strong> lleno con el cliente; de ahí se completan datos y queda guardado el brief. Al guardar, el checklist queda disponible para todas las áreas y la fecha define el cronograma.</p></div></div>
       <form className="form" onSubmit={submit}>
+        <div className={'form-file' + (formRows ? ' ok' : '')}>
+          <div className="form-file-main">
+            <div className="form-file-ic">📄</div>
+            <div>
+              <div className="form-file-t">{formRows ? `Formulario cargado: ${formName}` : 'Formulario del evento (Excel) — obligatorio'}</div>
+              <div className="form-file-s">{formRows ? `${formRows.length} respuestas leídas · puedes reemplazarlo` : 'Sube el Excel lleno con el cliente (.xlsx). Se extraen fecha, lugar y asistentes, y se guarda el brief completo.'}</div>
+            </div>
+          </div>
+          <label className="btn btn-sm btn-primary" style={{ cursor: 'pointer' }}>
+            {formRows ? 'Reemplazar' : 'Subir Excel'}
+            <input type="file" accept=".xlsx,.xls" style={{ display: 'none' }} onChange={onForm} />
+          </label>
+        </div>
+        {formErr && <div className="alert crit" style={{ marginBottom: 14 }}><span className="alert-icon"><span>!</span></span><div>{formErr}</div></div>}
+        {formRows && (
+          <details className="form-preview">
+            <summary>Ver respuestas del formulario ({formRows.length})</summary>
+            {families.map(fam => (
+              <div key={fam} className="form-preview-fam">
+                <div className="form-preview-fam-t">{fam}</div>
+                {formRows.filter(r => r.familia === fam).map((r, i) => (
+                  <div key={i} className="form-preview-row"><span className="form-preview-q">{r.pregunta}</span><span className="form-preview-a">{r.respuesta || '—'}{r.notas ? ` · ${r.notas}` : ''}</span></div>
+                ))}
+              </div>
+            ))}
+          </details>
+        )}
         <div className="form-grid">
           <div className="form-row full"><label htmlFor="name">Nombre del evento</label><input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej: Lanzamiento Línea Premium" required /></div>
           <div className="form-row"><label htmlFor="client">Cliente</label><input id="client" value={client} onChange={(e) => setClient(e.target.value)} placeholder="Ej: Cervecería XYZ" /></div>
@@ -691,7 +861,7 @@ function NewEventView({ onSubmit, onCancel, defaultSeller }) {
   );
 }
 
-function EventDetailView({ event, isAdmin, myArea, canMark, openStages, onBack, onToggle, onDelete, onStageOpen }) {
+function EventDetailView({ event, isAdmin, myArea, myEmail, canMark, openStages, attachments, onBack, onToggle, onUpload, onRemoveAttachment, onOpenAttachment, onDelete, onStageOpen }) {
   const G = window.GANTT_DATA;
   const tasks = useM(() => applicableTasks(event.paymentMode), [event.paymentMode]);
   const days = daysBetween(todayLocal(), new Date(event.eventDate));
@@ -702,7 +872,7 @@ function EventDetailView({ event, isAdmin, myArea, canMark, openStages, onBack, 
     const out = [];
     const nvDone = event.taskStatus?.['t12']?.done;
     const nvTask = tasks.find(t => t.id === 't12');
-    if (nvTask && !nvDone) { const due = taskDate(event.eventDate, nvTask.end); if (todayLocal() >= due) out.push({ kind: 'crit', text: <><strong>NV no aprobada por Contabilidad.</strong> Sin esto, ninguna otra área puede avanzar.</> }); }
+    if (nvTask && !nvDone) { const due = taskDate(event, nvTask.end); if (todayLocal() >= due) out.push({ kind: 'crit', text: <><strong>NV no aprobada por Contabilidad.</strong> Sin esto, ninguna otra área puede avanzar.</> }); }
     if (event.paymentMode === 'contado' && days <= 3 && days >= 0) { const pagoDone = event.taskStatus?.['t09']?.done && event.taskStatus?.['t09b']?.done; if (!pagoDone) out.push({ kind: 'crit', text: <><strong>Corte a −72h sin pago detectado.</strong> Sin confirmación, el evento no se ejecuta.</> }); }
     if (days <= 3 && days >= 0 && !event.taskStatus?.['t_go']?.done) out.push({ kind: 'warn', text: <><strong>Facturación y Cobranza aún no confirma go / no-go.</strong> Plazo: −72h del evento.</> });
     if (days === 1 && !event.taskStatus?.['t_bod_recep']?.done) out.push({ kind: 'crit', text: <><strong>Bodega aún no registra los insumos y activos comprados.</strong> Plazo: hoy (D−1).</> });
@@ -710,8 +880,14 @@ function EventDetailView({ event, isAdmin, myArea, canMark, openStages, onBack, 
     return out;
   }, [event, tasks, days]);
   const stages = G.STAGES;
-  const tasksByStage = useM(() => { const m = {}; stages.forEach(s => m[s.id] = []); tasks.forEach(t => { if (m[t.stage]) m[t.stage].push(t); }); return m; }, [tasks]);
-  const isOpen = (sid) => openStages.includes(sid);
+  // Filtro por área: por defecto un miembro ve solo las tareas de su área; el admin ve todas.
+  const [areaFilter, setAreaFilter] = useS(() => (isAdmin ? 'all' : (tasks.some(t => t.area === myArea) ? myArea : 'all')));
+  const tasksByStage = useM(() => {
+    const vis = areaFilter === 'all' ? tasks : tasks.filter(t => t.area === areaFilter);
+    const m = {}; stages.forEach(s => m[s.id] = []); vis.forEach(t => { if (m[t.stage]) m[t.stage].push(t); }); return m;
+  }, [tasks, areaFilter]);
+  const forceOpen = areaFilter !== 'all'; // al filtrar por área, se muestran las etapas expandidas
+  const isOpen = (sid) => forceOpen || openStages.includes(sid);
   return (
     <>
       <div className="detail-bar">
@@ -735,9 +911,33 @@ function EventDetailView({ event, isAdmin, myArea, canMark, openStages, onBack, 
         <div className="evt-hd-r"><div className={'evt-countdown' + (days <= 3 && days >= 0 ? ' crit' : '')}><div className="evt-countdown-n">{days >= 0 ? `D−${days}` : `D+${Math.abs(days)}`}</div><div className="evt-countdown-l">{days === 0 ? 'es hoy' : (days > 0 ? 'para el evento' : 'post-evento')}</div></div></div>
       </div>
       {alerts.length > 0 && <div className="alerts">{alerts.map((a, i) => <div key={i} className={'alert ' + a.kind}><span className="alert-icon"><span>!</span></span><div>{a.text}</div></div>)}</div>}
+      {event.formulario && event.formulario.length > 0 && (
+        <details className="evt-form">
+          <summary>📄 Brief del evento · formulario ({event.formulario.length} respuestas)</summary>
+          <div className="evt-form-body">
+            {[...new Set(event.formulario.map(r => r.familia).filter(Boolean))].map(fam => (
+              <div key={fam} className="form-preview-fam">
+                <div className="form-preview-fam-t">{fam}</div>
+                {event.formulario.filter(r => r.familia === fam).map((r, i) => (
+                  <div key={i} className="form-preview-row"><span className="form-preview-q">{r.pregunta}</span><span className="form-preview-a">{r.respuesta || '—'}{r.notas ? ` · ${r.notas}` : ''}</span></div>
+                ))}
+              </div>
+            ))}
+          </div>
+        </details>
+      )}
       <div className="prog">
         <div className="prog-pct"><div className="prog-pct-n">{pct}%</div><div className="prog-pct-l">{doneN}/{tasks.length} tareas</div></div>
         <div className="prog-areas">{Object.entries(byArea).map(([k, v]) => { const a = G.AREAS[k]; const p = v.total ? (v.done / v.total) * 100 : 0; return (<div key={k} className="prog-area"><span className="prog-area-dot" style={{ background: a.color }}></span><span className="prog-area-name">{a.label}</span><div className="prog-area-bar"><div className="prog-area-bar-fill" style={{ width: p + '%', background: a.color }}></div></div><span className="prog-area-frac">{v.done}/{v.total}</span></div>); })}</div>
+      </div>
+      <div className="area-filter">
+        <span className="area-filter-l">Ver tareas de:</span>
+        <button className={'area-chip' + (areaFilter === 'all' ? ' on' : '')} onClick={() => setAreaFilter('all')}>Todas las áreas</button>
+        {Object.keys(byArea).map(k => (
+          <button key={k} className={'area-chip' + (areaFilter === k ? ' on' : '')} onClick={() => setAreaFilter(k)}>
+            <span className="area-chip-dot" style={{ background: G.AREAS[k].color }}></span>{G.AREAS[k].label}{k === myArea ? ' · tu área' : ''}
+          </button>
+        ))}
       </div>
       <div className="stages">
         {stages.map(stage => {
@@ -755,7 +955,7 @@ function EventDetailView({ event, isAdmin, myArea, canMark, openStages, onBack, 
                 <div className="stg-prog"><span className="stg-prog-frac">{sDone}/{sTasks.length}</span><div className="stg-prog-bar"><div className={'stg-prog-bar-fill' + (allDone ? ' done' : '')} style={{ width: sPct + '%' }}></div></div></div>
                 <span className="stg-chev">›</span>
               </div>
-              {open && <div className="stg-body">{sTasks.map(t => <TaskRow key={t.id} task={t} event={event} myArea={myArea} canMark={canMark(t)} onToggle={() => onToggle(t)} />)}</div>}
+              {open && <div className="stg-body">{sTasks.map(t => <TaskRow key={t.id} task={t} event={event} isAdmin={isAdmin} myArea={myArea} myEmail={myEmail} canMark={canMark(t)} attachments={attachments[t.id] || []} onToggle={() => onToggle(t)} onUpload={onUpload} onRemoveAttachment={onRemoveAttachment} onOpenAttachment={onOpenAttachment} />)}</div>}
             </div>
           );
         })}
@@ -764,27 +964,32 @@ function EventDetailView({ event, isAdmin, myArea, canMark, openStages, onBack, 
   );
 }
 
-function TaskRow({ task, event, myArea, canMark, onToggle }) {
+function TaskRow({ task, event, isAdmin, myArea, myEmail, canMark, attachments, onToggle, onUpload, onRemoveAttachment, onOpenAttachment }) {
   const G = window.GANTT_DATA;
   const area = G.AREAS[task.area];
   const st = statusFor(task, event);
   const done = st.kind === 'done';
   const prereqDone = (task.prereq || []).every(pid => event.taskStatus?.[pid]?.done);
   const prereqLocked = !done && !prereqDone;
-  const startD = taskDate(event.eventDate, task.start);
-  const endD = taskDate(event.eventDate, task.end);
+  const startD = taskDate(event, task.start);
+  const endD = taskDate(event, task.end);
   const sameDay = task.start === task.end;
   const dayRange = sameDay ? fmtDayMonth(startD) : `${fmtDayMonth(startD)} – ${fmtDayMonth(endD)}`;
   let metaCls = 'tsk-meta-item'; let metaTxt = dayRange;
   if (st.kind === 'late') { metaCls += ' late'; metaTxt = '⚠ atrasada · ' + dayRange; }
   else if (st.kind === 'now') { metaCls += ' now'; metaTxt = '● en curso · ' + dayRange; }
   const mine = task.area === myArea;
-  const clickable = canMark && (done || !prereqLocked);
+  const need = task.attach?.min || 0;
+  const have = (attachments || []).length;
+  const attachMissing = need > 0 && have < need;
+  const clickable = done ? isAdmin : (canMark && !prereqLocked); // el gate de adjuntos lo valida onToggle con aviso
   let checkCls = 'tsk-check' + (done ? ' on' : '');
   if (!canMark) checkCls += ' area-locked';
-  else if (prereqLocked) checkCls += ' locked';
+  else if (prereqLocked || (!done && attachMissing)) checkCls += ' locked';
   const checkTitle = !canMark ? `Solo ${area.label} puede marcar esta tarea`
-    : (prereqLocked ? 'Esperando que se completen las tareas previas' : (done ? 'Marcar como pendiente' : 'Marcar como hecho'));
+    : (done ? (isAdmin ? 'Deshacer (solo admin)' : 'Solo un administrador puede deshacer')
+      : (prereqLocked ? 'Esperando que se completen las tareas previas'
+        : (attachMissing ? `Adjunta ${task.attach.label} para poder completar` : 'Marcar como hecho')));
   return (
     <div className={'tsk' + (done ? ' done' : '')}>
       <button className={checkCls} onClick={(e) => { e.preventDefault(); if (clickable) onToggle(); }} title={checkTitle} aria-label="Marcar tarea"></button>
@@ -796,9 +1001,27 @@ function TaskRow({ task, event, myArea, canMark, onToggle }) {
           <span className={metaCls}>{metaTxt}</span>
           {prereqLocked && <span className="tsk-meta-item">🔒 esperando prerequisitos</span>}
           {!canMark && !done && <span className="tsk-meta-item">🔒 solo {area.label}</span>}
+          {need > 0 && <span className={'tsk-meta-item' + (attachMissing ? ' late' : '')}>📎 {have}/{need} {task.attach.label}</span>}
         </div>
+        {task.attach && (canMark || have > 0) && (
+          <div className="tsk-attach">
+            {(attachments || []).map(a => (
+              <span key={a.id} className="att-chip">
+                <button className="att-name" onClick={() => onOpenAttachment(a)} title={`Abrir · subido por ${a.by}`}>📄 {a.name}</button>
+                {(isAdmin || a.by === myEmail) && <button className="att-x" onClick={() => onRemoveAttachment(task.id, a)} title="Eliminar adjunto">×</button>}
+              </span>
+            ))}
+            {canMark && !done && (
+              <label className="att-add">
+                + Adjuntar {task.attach.kind === 'foto' ? 'foto' : 'archivo'}
+                <input type="file" accept={task.attach.kind === 'foto' ? 'image/*' : undefined} style={{ display: 'none' }}
+                  onChange={(e) => { const f = e.target.files && e.target.files[0]; if (f) onUpload(task, f); e.target.value = ''; }} />
+              </label>
+            )}
+          </div>
+        )}
       </div>
-      {done && <div className="tsk-marker"><span className="tsk-marker-by">{st.st.by}</span><span className="tsk-marker-when">{fmtRel(st.st.at)}</span>{canMark && <button className="tsk-marker-undo" onClick={onToggle}>deshacer</button>}</div>}
+      {done && <div className="tsk-marker"><span className="tsk-marker-by">{st.st.by}</span><span className="tsk-marker-when">{fmtRel(st.st.at)}</span>{isAdmin && <button className="tsk-marker-undo" onClick={onToggle}>deshacer</button>}</div>}
     </div>
   );
 }
