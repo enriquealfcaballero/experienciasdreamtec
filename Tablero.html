@@ -82,6 +82,9 @@ a:hover { text-decoration: underline; }
 .btn-ghost { border-color: transparent; background: transparent; }
 .btn-ghost:hover { background: var(--bg-soft); border-color: var(--line); }
 .btn-sm { padding: 6px 12px; font-size: 12.5px; }
+.btn-back { display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px 8px 13px; border-radius: 100px; border: 1px solid var(--line); background: var(--bg-card); cursor: pointer; font-weight: 600; font-size: 13px; color: var(--ink); box-shadow: 0 1px 2px oklch(0 0 0 / 0.05); transition: border-color .15s, background .15s, transform .15s, box-shadow .15s; }
+.btn-back:hover { border-color: var(--ink-mute); background: var(--bg-soft); transform: translateX(-2px); box-shadow: 0 2px 6px oklch(0 0 0 / 0.08); }
+.btn-back svg { width: 15px; height: 15px; stroke: currentColor; flex-shrink: 0; }
 
 /* === Events list === */
 .evts { display: grid; gap: 12px; }
@@ -545,7 +548,12 @@ function App({ profile }) {
   const [loading, setLoading] = useS(true);
   const [loadErr, setLoadErr] = useS(null);
   const [conn, setConn] = useS('connecting');
-  const [view, setView] = useS('list');
+  const [view, setView] = useS(() => {
+    const h = (window.location.hash || '').replace('#', '').toLowerCase();
+    if (h === 'dashboard' && canDash) return 'dashboard';
+    if ((h === 'usuarios' || h === 'users') && isAdmin) return 'users';
+    return 'list';
+  });
   const [selectedEventId, setSelectedEventId] = useS(null);
   const [openStages, setOpenStages] = useS({});
   const [users, setUsers] = useS([]);
@@ -581,6 +589,12 @@ function App({ profile }) {
       .on('postgres_changes', { event: '*', schema: 'public', table: TABLE_AT }, () => { if (alive) fetchAll(); })
       .subscribe((s) => { if (alive && s === 'SUBSCRIBED') setConn(c => (c === 'error' ? c : 'live')); });
     return () => { alive = false; sb.removeChannel(ch); };
+  }, []);
+
+  useE(() => {
+    // Si llegamos desde el header del Gantt con #dashboard / #usuarios, abre esa vista.
+    if (view === 'users' && isAdmin) loadUsers();
+    if (window.location.hash) { try { window.history.replaceState({}, '', window.location.pathname); } catch (e) {} }
   }, []);
 
   const events = useM(() => {
@@ -970,8 +984,11 @@ function EventDetailView({ event, isAdmin, myArea, myEmail, canMark, openStages,
   return (
     <>
       <div className="detail-bar">
-        <button className="btn btn-sm btn-ghost" onClick={onBack}>← Eventos</button>
-        <span className="crumb">Eventos / <span className="crumb-cur">{event.name}</span></span>
+        <button className="btn-back" onClick={onBack} title="Volver a todos los eventos">
+          <svg viewBox="0 0 24 24" fill="none" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"></path><path d="M11 6l-6 6 6 6"></path></svg>
+          Todos los eventos
+        </button>
+        <span className="crumb"><span className="crumb-cur">{event.name}</span></span>
         <div style={{ flex: 1 }}></div>
         {isAdmin && <button className="btn btn-sm btn-ghost" onClick={onDelete} title="Eliminar evento">Eliminar</button>}
       </div>
