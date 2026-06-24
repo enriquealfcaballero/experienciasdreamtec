@@ -30,6 +30,80 @@
   <script src="vendor/supabase.js"></script>
   <script src="supabase-config.js"></script>
   <script src="auth.js"></script>
+  <script src="mejoras.js"></script>
+  <!-- Header propio del Gantt (login + accesos), inyectado por encima del bundle y re-aplicado tras su render -->
+  <script>
+    window.DT_HIDE_CHIP = true; // este header reemplaza al chip de auth.js
+    (function () {
+      var NAV_DASH = ['comercial', 'facturacion', 'contabilidad'];
+      var HDR_CSS = ""
+        + "#dtg-hdr{position:fixed;top:0;left:0;right:0;min-height:56px;z-index:2147480000;display:flex;align-items:center;gap:14px;padding:8px 24px;background:oklch(1 0 0);border-bottom:1px solid oklch(0.90 0.01 260);font-family:'IBM Plex Sans',-apple-system,system-ui,sans-serif;color:oklch(0.22 0.02 260);box-shadow:0 1px 3px oklch(0 0 0 /.04);flex-wrap:wrap}"
+        + "#dtg-hdr img{height:24px;opacity:.9}"
+        + "#dtg-hdr .dtg-div{width:1px;height:20px;background:oklch(0.90 0.01 260)}"
+        + "#dtg-hdr .dtg-tag{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:oklch(0.62 0.02 260)}"
+        + "#dtg-hdr .dtg-sp{flex:1}"
+        + "#dtg-hdr .dtg-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 13px;border-radius:8px;border:1px solid oklch(0.90 0.01 260);background:oklch(1 0 0);cursor:pointer;font-size:12.5px;font-weight:500;color:oklch(0.22 0.02 260);text-decoration:none;transition:border-color .15s,background .15s}"
+        + "#dtg-hdr .dtg-btn:hover{border-color:oklch(0.62 0.02 260);background:oklch(0.972 0.005 80);text-decoration:none}"
+        + "#dtg-hdr .dtg-cta{display:inline-flex;align-items:center;gap:9px;padding:8px 14px 8px 11px;border-radius:9px;background:oklch(0.22 0.02 260);color:#fff;text-decoration:none;font-size:13px;font-weight:600;border:1px solid oklch(0.22 0.02 260);transition:background .18s,transform .12s}"
+        + "#dtg-hdr .dtg-cta:hover{background:oklch(0.30 0.02 260);transform:translateY(-1px);color:#fff;text-decoration:none}"
+        + "#dtg-hdr .dtg-cta svg{width:15px;height:15px;stroke:currentColor}"
+        + "#dtg-hdr .dtg-user{display:inline-flex;align-items:center;gap:9px;padding:4px 5px 4px 13px;border:1px solid oklch(0.90 0.01 260);border-radius:100px;background:oklch(1 0 0)}"
+        + "#dtg-hdr .dtg-user b{font-weight:600;font-size:12.5px}"
+        + "#dtg-hdr .dtg-area{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:oklch(0.62 0.02 260)}"
+        + "#dtg-hdr .dtg-adm{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.08em;text-transform:uppercase;background:oklch(0.55 0.13 264);color:#fff;padding:2px 7px;border-radius:100px}"
+        + "#dtg-hdr .dtg-out{border:1px solid oklch(0.90 0.01 260);background:oklch(0.972 0.005 80);border-radius:100px;padding:5px 12px;cursor:pointer;font-size:12px;color:inherit}"
+        + "#dtg-hdr .dtg-out:hover{border-color:oklch(0.62 0.02 260)}"
+        + "@media(max-width:720px){#dtg-hdr .dtg-tag,#dtg-hdr .dtg-area{display:none}#dtg-hdr{padding:8px 12px;gap:8px}}";
+
+      function areaLabel(k) { return (window.DT && window.DT.areaLabel) ? window.DT.areaLabel(k) : k; }
+      function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+      function ensure(profile) {
+        var doc = document;
+        if (!doc.getElementById('dtg-hdr-css')) {
+          var st = doc.createElement('style'); st.id = 'dtg-hdr-css'; st.textContent = HDR_CSS;
+          (doc.head || doc.documentElement).appendChild(st);
+        }
+        if (doc.body && doc.body.style.paddingTop !== '64px') doc.body.style.paddingTop = '64px';
+        if (!doc.body || doc.getElementById('dtg-hdr')) return;
+        var isAdmin = profile.role === 'admin';
+        var canDash = isAdmin || NAV_DASH.indexOf(profile.area) !== -1;
+        var dash = canDash ? '<a class="dtg-btn" href="Tablero.html#dashboard" title="Ver dashboard de eventos">Dashboard</a>' : '';
+        var usr = isAdmin ? '<a class="dtg-btn" href="Tablero.html#usuarios" title="Gestionar usuarios">Usuarios</a>' : '';
+        var mej = '<button class="dtg-btn" id="dtg-mej" type="button" title="Sugerir una mejora">Mejoras</button>';
+        var adm = isAdmin ? '<span class="dtg-adm">Admin</span>' : '<span class="dtg-area">' + esc(areaLabel(profile.area)) + '</span>';
+        var h = doc.createElement('header'); h.id = 'dtg-hdr';
+        h.innerHTML = ''
+          + '<img src="assets/dreamtec-logo.png" alt="Dreamtec" onerror="this.style.display=\'none\'"/>'
+          + '<div class="dtg-div"></div>'
+          + '<span class="dtg-tag">Carta Gantt · Eventos</span>'
+          + '<div class="dtg-sp"></div>'
+          + dash + usr + mej
+          + '<a class="dtg-cta" href="Tablero.html" title="Ir al Tablero operativo">'
+          +   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect></svg>'
+          +   'Ir al Tablero</a>'
+          + '<div class="dtg-user"><b>' + esc(profile.full_name || profile.email) + '</b>' + adm + '<button class="dtg-out" type="button">Salir</button></div>';
+        doc.body.appendChild(h);
+        var out = h.querySelector('.dtg-out');
+        if (out) out.addEventListener('click', function () { if (window.DT) window.DT.signOut(); });
+        var mb = h.querySelector('#dtg-mej');
+        if (mb) mb.addEventListener('click', function () { if (window.VxMejoras && window.SUPABASE_CONFIG) window.VxMejoras.open({ url: window.SUPABASE_CONFIG.url, anonKey: window.SUPABASE_CONFIG.anonKey, app: 'expdt', userName: profile.full_name || profile.email, userEmail: profile.email, isAdmin: profile.role === 'admin' }); });
+      }
+
+      function mount(profile) {
+        if (!profile) return;
+        ensure(profile);
+        // El bundle hace document.documentElement.replaceWith(): re-inyectar tras cada wipe.
+        setInterval(function () { try { ensure(profile); } catch (e) {} }, 600);
+      }
+
+      function waitDT() {
+        if (window.DT && typeof window.DT.onReady === 'function') window.DT.onReady(mount);
+        else setTimeout(waitDT, 50);
+      }
+      waitDT();
+    })();
+  </script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { background: #f6f4ef; display: flex; align-items: center; justify-content: center; min-height: 100vh; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
