@@ -6,7 +6,7 @@
 // Crea su propio cliente supabase (reutiliza la sesión autenticada persistida del host).
 // ============================================================
 (function () {
-  var cfg = null, sb = null, photoUrl = '', tipo = 'mejora', busy = false;
+  var cfg = null, sb = null, root = null, photoUrl = '', tipo = 'mejora', busy = false;
 
   function client() { if (!sb) sb = window.supabase.createClient(cfg.url, cfg.anonKey); return sb; }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
