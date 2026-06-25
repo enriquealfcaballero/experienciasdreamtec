@@ -31,6 +31,9 @@
   <script src="supabase-config.js"></script>
   <script src="auth.js"></script>
   <script src="mejoras.js"></script>
+  <!-- El popup de tareas (.task-tooltip, z-index:10) quedaba tapado/cortado por el header fijo
+       (#dtg-hdr, z-index ~2.1e9). Lo subimos por encima para que se vea completo. -->
+  <style>.task-tooltip{z-index:2147481000 !important;}</style>
   <!-- Header propio del Gantt (login + accesos), inyectado por encima del bundle y re-aplicado tras su render -->
   <script>
     window.DT_HIDE_CHIP = true; // este header reemplaza al chip de auth.js

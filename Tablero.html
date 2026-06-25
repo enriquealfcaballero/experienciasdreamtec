@@ -367,6 +367,7 @@ window.GANTT_DATA = (function () {
 <!-- Librerías ALOJADAS LOCALMENTE (vendor/) — sin depender de CDNs (la red de Dreamtec los filtra). -->
 <script src="vendor/supabase.js"></script>
 <script src="supabase-config.js"></script>
+<script src="mejoras.js"></script>
 <script src="auth.js"></script>
 <script>window.DT_HIDE_CHIP = true;</script><!-- el Tablero muestra el usuario en su propia topbar; evita que auth.js pinte el chip si el perfil carga antes que React -->
 <script src="vendor/react.production.min.js"></script>
@@ -763,6 +764,7 @@ function TopBar({ profile, isAdmin, canDash, conn, onUsers, onDashboard }) {
       <div className="tb-spacer"></div>
       {canDash && <button className="btn btn-sm" onClick={onDashboard} title="Resumen de eventos por mes">Dashboard</button>}
       {isAdmin && <button className="btn btn-sm" onClick={onUsers} title="Gestionar usuarios y permisos">Usuarios</button>}
+      <button className="btn btn-sm" onClick={() => { if (window.VxMejoras && window.SUPABASE_CONFIG) window.VxMejoras.open({ url: window.SUPABASE_CONFIG.url, anonKey: window.SUPABASE_CONFIG.anonKey, app: 'expdt', userName: profile.full_name || profile.email, userEmail: profile.email, isAdmin: isAdmin }); }} title={isAdmin ? 'Ver y gestionar las mejoras propuestas' : 'Sugerir una mejora'}>Mejoras</button>
       <div className="user-box">
         <span className="user-name">{profile.full_name || profile.email}</span>
         {isAdmin ? <span className="user-adm">Admin</span> : <span className="user-area">{G.AREAS[profile.area]?.label || profile.area}</span>}
