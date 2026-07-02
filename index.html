@@ -91,6 +91,8 @@
         if (out) out.addEventListener('click', function () { if (window.DT) window.DT.signOut(); });
         var mb = h.querySelector('#dtg-mej');
         if (mb) mb.addEventListener('click', function () { if (window.VxMejoras && window.SUPABASE_CONFIG) window.VxMejoras.open({ url: window.SUPABASE_CONFIG.url, anonKey: window.SUPABASE_CONFIG.anonKey, app: 'expdt', userName: profile.full_name || profile.email, userEmail: profile.email, isAdmin: profile.role === 'admin' }); });
+        // Deep-link desde el portal: expdt.verticecorp.cl#mejoras abre el buzón de mejoras (una sola vez).
+        if (mb && /^#?\/?mejoras\b/i.test(window.location.hash || '') && !window.__expdtMejOpened) { window.__expdtMejOpened = true; setTimeout(function () { mb.click(); }, 500); }
       }
 
       function mount(profile) {
