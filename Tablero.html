@@ -376,9 +376,9 @@ window.GANTT_DATA = (function () {
 
 <script type="text/babel" data-presets="react">
 const { useState: useS, useEffect: useE, useMemo: useM } = React;
-const TABLE_EV = 'eventos';
-const TABLE_TS = 'task_status';
-const TABLE_AT = 'task_attachments';
+const TABLE_EV = 'exp_eventos';       // MIGRADO al Supabase del hub: tablas con prefijo exp_
+const TABLE_TS = 'exp_task_status';
+const TABLE_AT = 'exp_task_attachments';
 const BUCKET = 'evidencias';
 
 function uid() { return 'e' + Math.random().toString(36).slice(2, 9); }
@@ -684,20 +684,21 @@ function App({ profile }) {
   async function loadUsers() {
     if (!isAdmin) return;
     setUsersLoading(true);
-    const { data, error } = await sb.from('profiles').select('id, email, full_name, area, role').order('email');
+    const { data, error } = await sb.from('exp_profiles').select('id, email, full_name, area, role').order('email');
     setUsersLoading(false);
     if (error) { alert('No se pudieron cargar los usuarios: ' + error.message); return; }
     setUsers(data || []);
   }
   async function updateProfile(id, patch) {
     setUsers(us => us.map(u => u.id === id ? { ...u, ...patch } : u)); // optimista
-    const { error } = await sb.from('profiles').update(patch).eq('id', id);
+    const { error } = await sb.from('exp_profiles').update(patch).eq('id', id);
     if (error) { alert('No se pudo actualizar el usuario: ' + error.message); loadUsers(); }
   }
   async function deleteUser(id, label) {
-    if (!confirm('¿Eliminar definitivamente a ' + label + '? Perderá el acceso y deberá registrarse de nuevo. Las tareas que marcó quedan registradas.')) return;
+    if (!confirm('¿Quitar el acceso al tablero a ' + label + '? Su cuenta del hub sigue existiendo (otras apps la usan); puede volver si se le reasigna un área. Las tareas que marcó quedan registradas.')) return;
     setUsers(us => us.filter(u => u.id !== id)); // optimista
-    const { error } = await sb.rpc('admin_delete_user', { target: id });
+    // MIGRADO: en el hub compartido NO se borra el usuario de auth (lo usan otras apps); solo se quita su perfil del tablero.
+    const { error } = await sb.rpc('exp_admin_remove_access', { target: id });
     if (error) { alert('No se pudo eliminar: ' + error.message); loadUsers(); }
   }
   function openUsers() { setView('users'); loadUsers(); }

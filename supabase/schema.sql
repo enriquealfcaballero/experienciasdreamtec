@@ -1,6 +1,13 @@
 -- ============================================================
 -- Tablero Operativo Dreamtec — esquema Supabase (con Auth)
 -- ============================================================
+-- ⚠ MIGRADO (2026-07): la app ya NO usa un proyecto propio. Vive en el
+-- Supabase del HUB (pqhcmtvnoytuzuvxxrbq) con tablas prefijadas exp_*
+-- (exp_eventos, exp_profiles, exp_task_status…), funciones exp_is_admin/
+-- exp_my_area/exp_admin_remove_access, secreto del webhook en Vault y la
+-- edge function notify-task desplegada en el hub. Este archivo queda como
+-- referencia histórica del modelo; NO aplicarlo tal cual en el hub.
+-- ============================================================
 -- Pégalo completo en el SQL Editor de Supabase. (El endpoint
 -- /database/query de la Management API no procesa bien los
 -- bloques $$ mezclados; el SQL Editor sí.)

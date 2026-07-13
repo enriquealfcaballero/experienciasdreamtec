@@ -116,20 +116,23 @@
   }
   function setMode(m) {
     mode = m;
-    var isReg = m === "register", isRecover = m === "recover", isNew = m === "newpass";
-    var tabsEl = overlay.querySelector(".dtauth-tabs"); if (tabsEl) tabsEl.style.display = (isRecover || isNew) ? "none" : "flex";
+    var isReg = m === "register", isRecover = m === "recover", isNew = m === "newpass", isArea = m === "area";
+    var tabsEl = overlay.querySelector(".dtauth-tabs"); if (tabsEl) tabsEl.style.display = (isRecover || isNew || isArea) ? "none" : "flex";
     var tabs = overlay.querySelectorAll(".dtauth-tab");
     for (var i = 0; i < tabs.length; i++) tabs[i].classList.toggle("on", tabs[i].getAttribute("data-mode") === m);
     var regs = overlay.querySelectorAll(".reg-only");
-    for (var j = 0; j < regs.length; j++) regs[j].style.display = isReg ? "flex" : "none";
-    // email visible salvo al fijar nueva contraseña; password visible salvo al pedir el enlace
-    var emailField = overlay.querySelector(".email-field"); emailField.style.display = isNew ? "none" : "flex";
-    var passField = overlay.querySelector(".pass-field"); passField.style.display = isRecover ? "none" : "flex";
-    var emailInput = overlay.querySelector('input[name="email"]'); emailInput.required = !isNew;
-    var passInput = overlay.querySelector('input[name="password"]'); passInput.required = !isRecover;
+    for (var j = 0; j < regs.length; j++) {
+      var hasArea = !!regs[j].querySelector('select[name="area"]');
+      regs[j].style.display = (isReg || (isArea && hasArea)) ? "flex" : "none";
+    }
+    // email visible salvo al fijar nueva contraseña o elegir área; password idem
+    var emailField = overlay.querySelector(".email-field"); emailField.style.display = (isNew || isArea) ? "none" : "flex";
+    var passField = overlay.querySelector(".pass-field"); passField.style.display = (isRecover || isArea) ? "none" : "flex";
+    var emailInput = overlay.querySelector('input[name="email"]'); emailInput.required = !(isNew || isArea);
+    var passInput = overlay.querySelector('input[name="password"]'); passInput.required = !(isRecover || isArea);
     passInput.setAttribute("autocomplete", (isReg || isNew) ? "new-password" : "current-password");
     overlay.querySelector("#dtauth-pass-label").textContent = isNew ? "Nueva contraseña" : "Contraseña";
-    var labels = { login: "Ingresar", register: "Crear cuenta", recover: "Enviar enlace de recuperación", newpass: "Guardar nueva contraseña" };
+    var labels = { login: "Ingresar", register: "Crear cuenta", recover: "Enviar enlace de recuperación", newpass: "Guardar nueva contraseña", area: "Guardar mi área" };
     overlay.querySelector("#dtauth-submit").textContent = labels[m] || "Ingresar";
     overlay.querySelector("#dtauth-forgot").style.display = (m === "login") ? "inline-block" : "none";
     overlay.querySelector("#dtauth-back").style.display = isRecover ? "inline-block" : "none";
@@ -177,6 +180,22 @@
     var email = f.email.value.trim().toLowerCase();
     var password = f.password.value;
     var btn = overlay.querySelector("#dtauth-submit");
+
+    // Cuenta del hub sin perfil de tablero: guardar el área elegida y entrar
+    if (mode === "area") {
+      if (!DT.user) { setMode("login"); return; }
+      btn.disabled = true; setMsg("Guardando tu área…", "");
+      DT.client.from("exp_profiles").insert({
+        id: DT.user.id, email: DT.user.email,
+        full_name: (DT.user.user_metadata || {}).full_name || "",
+        area: f.area.value, role: "member"
+      }).then(function (res) {
+        btn.disabled = false;
+        if (res.error && res.error.code !== "23505") { setMsg("No se pudo guardar: " + res.error.message, "err"); return; }
+        location.reload();
+      });
+      return;
+    }
 
     // Fijar nueva contraseña (volviste desde el enlace de recuperación)
     if (mode === "newpass") {
@@ -271,13 +290,28 @@
   }
   function loadProfile(user, attempt) {
     attempt = attempt || 0;
-    return DT.client.from("profiles").select("*").eq("id", user.id).single().then(function (res) {
+    return DT.client.from("exp_profiles").select("*").eq("id", user.id).maybeSingle().then(function (res) {
       if (res.error || !res.data) {
-        if (attempt < 3) return new Promise(function (r) { setTimeout(r, 400); }).then(function () { return loadProfile(user, attempt + 1); });
+        if (attempt < 2) return new Promise(function (r) { setTimeout(r, 400); }).then(function () { return loadProfile(user, attempt + 1); });
         throw (res.error || new Error("perfil no encontrado"));
       }
       return res.data;
     });
+  }
+  // MIGRADO al hub: ya no hay trigger que cree el perfil al registrarse. La app lo crea:
+  // con el área del registro (metadata) si existe; si no (cuenta del hub que entra por
+  // primera vez al tablero), se le pide elegir área una única vez.
+  function ensureProfile(user) {
+    var md = user.user_metadata || {};
+    if (md.area) {
+      return DT.client.from("exp_profiles").insert({
+        id: user.id, email: user.email, full_name: md.full_name || "", area: md.area, role: "member"
+      }).then(function (res) {
+        if (res.error && res.error.code !== "23505") throw res.error;
+        return loadProfile(user);
+      });
+    }
+    return Promise.reject({ __needArea: true });
   }
   function onSignedIn(session) {
     if (DT._recovery) return; // en recuperación mostramos el form de nueva contraseña, no la app
@@ -299,13 +333,28 @@
       // El bundler de la Gantt reemplaza el DOM; re-insertar el chip de sesión.
       if (window.__DT_GANTT_PAGE) { setTimeout(showChip, 1000); setTimeout(showChip, 2600); }
       fireReady();
-    }).catch(function (err) {
-      DT._loadingProfile = false;
-      // Perfil ausente: forzar salida con mensaje
-      if (!overlay) buildOverlay();
-      setMode("login");
-      setMsg("No encontramos tu perfil. Si te registraste recién, cierra sesión e ingresa de nuevo; si el problema persiste, avísale al administrador.", "err");
-      DT.client.auth.signOut();
+    }).catch(function () {
+      // Perfil ausente → intentar crearlo (metadata del registro) o pedir el área una vez
+      ensureProfile(DT.user).then(function (profile) {
+        DT._loadingProfile = false;
+        DT.profile = profile;
+        var ovs = document.querySelectorAll("#dtauth-ov");
+        for (var i = 0; i < ovs.length; i++) ovs[i].remove();
+        overlay = null;
+        showChip();
+        fireReady();
+      }).catch(function (err2) {
+        DT._loadingProfile = false;
+        if (!overlay) buildOverlay();
+        if (err2 && err2.__needArea) {
+          setMode("area");
+          setMsg("Tu cuenta existe en el hub pero aún no tiene área en este tablero. Elígela una vez para continuar.", "");
+        } else {
+          setMode("login");
+          setMsg("No pudimos preparar tu perfil: " + ((err2 && err2.message) || "error desconocido") + ". Intenta de nuevo o avísale al administrador.", "err");
+          DT.client.auth.signOut();
+        }
+      });
     });
   }
 
