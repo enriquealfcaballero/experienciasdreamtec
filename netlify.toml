@@ -3,6 +3,10 @@
   publish = "."
   command = ""
 
+# Funciones serverless (correos de auth por Resend, marca Dreamtec).
+[functions]
+  directory = "netlify/functions"
+
 # Cabeceras básicas
 [[headers]]
   for = "/*"

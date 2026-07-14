@@ -146,14 +146,21 @@
     b.style.cssText = "border:1px solid #d8d8e0;background:#fff;padding:7px 12px;border-radius:7px;cursor:pointer;font-size:12.5px;color:#2a2a2a;flex:none";
     b.textContent = label; b.addEventListener("click", fn); a.appendChild(b);
   }
+  // Llama a la función Netlify que genera el enlace y manda el correo branded DREAMTEC (con link a la app).
+  function authEmail(mode, email, extra) {
+    var body = { mode: mode, email: email };
+    if (extra) { for (var k in extra) body[k] = extra[k]; }
+    return fetch("/.netlify/functions/auth-email", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) })
+      .then(function (r) { return r.json().catch(function () { return { ok: false, error: "respuesta inválida del servidor" }; }); })
+      .catch(function () { return { ok: false, error: "No se pudo enviar el correo. Inténtalo de nuevo." }; });
+  }
   function resendConfirmation(email) {
     if (!email) return;
-    setMsg("Reenviando correo de confirmación…", "");
-    DT.client.auth.resend({ type: "signup", email: email, options: { emailRedirectTo: window.location.origin + window.location.pathname } })
-      .then(function (r) {
-        if (r.error) { setMsg(translateErr(r.error.message), "err"); }
-        else { setMsg("Listo: reenviamos el correo a " + email + ". Revisa tu bandeja y la carpeta de spam.", "ok"); }
-      });
+    setMsg("Reenviando enlace de acceso…", "");
+    authEmail("resend", email).then(function (r) {
+      if (!r.ok) { setMsg(translateErr(r.error), "err"); }
+      else { setMsg("Listo: reenviamos un enlace de acceso a " + email + " (desde Dreamtec). Revisa tu bandeja y la carpeta de spam.", "ok"); }
+    });
   }
   function getUrlError() {
     var out = {};
@@ -213,13 +220,13 @@
 
     if (!domainOk(email)) { setMsg("Solo se permiten correos @dreamtec.cl o @ofimundo.cl.", "err"); return; }
 
-    // Pedir enlace de recuperación
+    // Pedir enlace de recuperación (correo DREAMTEC, link a la app).
     if (mode === "recover") {
       btn.disabled = true; setMsg("Enviando enlace de recuperación…", "");
-      DT.client.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + window.location.pathname + "?dt=recovery" }).then(function (r) {
+      authEmail("recovery", email).then(function (r) {
         btn.disabled = false;
-        if (r.error) { setMsg(translateErr(r.error.message), "err"); return; }
-        setMsg("Si existe una cuenta con " + email + ", te enviamos un enlace para restablecer la contraseña. Revisa tu bandeja y el spam.", "ok");
+        if (!r.ok) { setMsg(translateErr(r.error), "err"); return; }
+        setMsg("Si existe una cuenta con " + email + ", te enviamos un enlace para restablecer la contraseña (desde Dreamtec). Revisa tu bandeja y el spam.", "ok");
       });
       return;
     }
@@ -227,30 +234,23 @@
     btn.disabled = true;
     setMsg(mode === "register" ? "Creando cuenta…" : "Ingresando…", "");
 
-    var p;
+    // Registro: crea la cuenta y manda la confirmación DREAMTEC (link a la app), no el correo por defecto de Supabase.
     if (mode === "register") {
-      p = DT.client.auth.signUp({
-        email: email, password: password,
-        options: {
-          data: { area: f.area.value, full_name: f.full_name.value.trim() },
-          emailRedirectTo: window.location.origin + window.location.pathname
-        }
+      authEmail("signup", email, { password: password, data: { area: f.area.value, full_name: f.full_name.value.trim() } }).then(function (r) {
+        btn.disabled = false;
+        if (!r.ok) { setMsg(translateErr(r.error), "err"); return; }
+        setMode("login");
+        setMsg("Te enviamos un correo de confirmación a " + email + " (desde Dreamtec). Ábrelo, confirma tu cuenta y luego ingresa aquí.", "ok");
       });
-    } else {
-      p = DT.client.auth.signInWithPassword({ email: email, password: password });
+      return;
     }
-    p.then(function (res) {
+
+    DT.client.auth.signInWithPassword({ email: email, password: password }).then(function (res) {
       btn.disabled = false;
       if (res.error) {
         var em = (res.error.message || "").toLowerCase();
         setMsg(translateErr(res.error.message), "err");
         if (em.indexOf("not confirmed") !== -1 || em.indexOf("not_confirmed") !== -1) addAction("Reenviar correo de confirmación", function () { resendConfirmation(email); });
-        return;
-      }
-      if (!res.data.session) {
-        // Confirmación por correo activada: no hay sesión hasta confirmar
-        setMode("login");
-        setMsg("Te enviamos un correo de confirmación a " + email + ". Ábrelo, confirma tu cuenta y luego ingresa aquí.", "ok");
         return;
       }
       // onAuthStateChange se encarga de cargar perfil y cerrar el modal
@@ -385,6 +385,19 @@
         if (!overlay) { buildOverlay(); }
       }
     });
+    // Enlace del correo (función auth-email): ?th=<token_hash>&vt=<recovery|signup|magiclink> → se verifica acá,
+    // cae en LA APP (no en el portal). recovery → form de nueva contraseña; signup/magiclink → sesión.
+    var _lp = getUrlError();
+    if (_lp.th && _lp.vt) {
+      if (_lp.vt === "recovery") DT._recovery = true;
+      DT.client.auth.verifyOtp({ token_hash: _lp.th, type: _lp.vt }).then(function (r) {
+        if (r.error) { cleanUrl(); if (!overlay) buildOverlay(); setMode("login"); setMsg("El enlace expiró o ya se usó. Solicítalo de nuevo.", "err"); return; }
+        cleanUrl();
+        if (_lp.vt === "recovery") { DT._recovery = true; if (!overlay) buildOverlay(); setMode("newpass"); setMsg("Define tu nueva contraseña para terminar la recuperación.", ""); }
+        // signup/magiclink → verifyOtp creó la sesión → onAuthStateChange carga el perfil y la app.
+      });
+      return;
+    }
     DT.client.auth.getSession().then(function (res) {
       var url = getUrlError();
       if (DT._recovery || url.type === "recovery") { // volviste desde el enlace de recuperación
