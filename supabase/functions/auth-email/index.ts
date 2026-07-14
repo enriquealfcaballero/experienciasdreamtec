@@ -18,7 +18,7 @@ const env = (k: string) => Deno.env.get(k) ?? "";
 const SB = env("SUPABASE_URL");
 const KEY = env("SUPABASE_SERVICE_ROLE_KEY");
 const RESEND = env("RESEND_API_KEY");
-const FROM = env("MAIL_FROM") || "Dreamtec Experiencias <notificaciones@verticecorp.cl>";
+const FROM = "Dreamtec Experiencias <no-reply@verticecorp.cl>";   // dominio verticecorp.cl verificado en Resend
 const APP = "https://expdt.verticecorp.cl";
 const LOGO = APP + "/assets/dreamtec-logo.png";
 const ALLOWED = ["dreamtec.cl", "ofimundo.cl"];
