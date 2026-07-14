@@ -146,11 +146,16 @@
     b.style.cssText = "border:1px solid #d8d8e0;background:#fff;padding:7px 12px;border-radius:7px;cursor:pointer;font-size:12.5px;color:#2a2a2a;flex:none";
     b.textContent = label; b.addEventListener("click", fn); a.appendChild(b);
   }
-  // Llama a la función Netlify que genera el enlace y manda el correo branded DREAMTEC (con link a la app).
+  // Llama a la Edge Function de Supabase (auth-email) que genera el enlace y manda el correo branded
+  // DREAMTEC por Resend (con link a la app). Se autentica con la anon key.
   function authEmail(mode, email, extra) {
     var body = { mode: mode, email: email };
     if (extra) { for (var k in extra) body[k] = extra[k]; }
-    return fetch("/.netlify/functions/auth-email", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) })
+    return fetch(CFG.url + "/functions/v1/auth-email", {
+      method: "POST",
+      headers: { "content-type": "application/json", "apikey": CFG.anonKey, "Authorization": "Bearer " + CFG.anonKey },
+      body: JSON.stringify(body)
+    })
       .then(function (r) { return r.json().catch(function () { return { ok: false, error: "respuesta inválida del servidor" }; }); })
       .catch(function () { return { ok: false, error: "No se pudo enviar el correo. Inténtalo de nuevo." }; });
   }
