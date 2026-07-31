@@ -2,6 +2,35 @@
 
 > Actualizado: 2026-07-04 · Resumen del estado del proyecto para contexto rápido (personas y asistentes).
 
+## ⛔ SITIO RETIRADO — Experiencias vive dentro del hub (2026-07-31)
+
+**`expdt.verticecorp.cl` redirige a `https://hub.verticecorp.cl/#/experiencias`.** Este repo queda como archivo histórico; no se le hacen más cambios.
+
+### Por qué una redirección y no simplemente apagarlo
+
+Los datos **no se movieron**: viven en el Supabase del hub con prefijo `exp_` desde julio, así que los dos sitios estaban leyendo y escribiendo lo MISMO. Con ambos arriba, alguien podía seguir marcando tareas desde acá —con el login viejo y sin los permisos del hub— y el avance del evento terminaba dependiendo de por dónde entró cada persona.
+
+La redirección usa `force = true`: sin eso Netlify sirve primero el archivo estático que exista (`index.html`, `Tablero.html`) y la regla solo aplicaría a rutas inexistentes, o sea a nada.
+
+### Qué se llevó el hub
+
+| acá | en el hub |
+|---|---|
+| `index.html` (Carta Gantt) | pestaña **Carta Gantt** |
+| `Tablero.html` | pestaña **Tablero** |
+| Dashboard (`#dashboard`) | pestaña **Resumen** |
+| Panel Usuarios (`#usuarios`) | sección **Usuarios** del hub |
+| `auth.js` (login propio) | la sesión del hub |
+| `mejoras.js` (buzón propio) | sección **Mejoras** del hub |
+| Edge Function `notify-task` | `exp-notify-background.mjs`, con la plantilla de correo del hub |
+
+Las 9 áreas, 8 etapas y 43 tareas del proceso quedaron en `netlify/functions/_expdata.mjs` del repo `campanas-vertice`, en **un solo lugar** compartido por la pantalla y el correo. Acá estaban duplicadas entre `Tablero.html` y la función de notificación.
+
+### Si hay que revivirlo
+
+Sacar el bloque `[[redirects]]` de `netlify.toml`. El código sigue completo y funcional — pero ojo: **volvería a escribir sobre las mismas tablas que el hub**, saltándose sus permisos.
+
+
 ## Qué es
 App de **eventos de experiencia de Dreamtec**: Carta Gantt (`index.html`, lectura) + **Tablero operativo** (`Tablero.html`, checklist por evento y por área, en tiempo real). Sitio estático sin build (React + Babel + supabase-js por CDN), originado en claude.ai/design.
 

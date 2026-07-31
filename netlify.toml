@@ -1,7 +1,25 @@
-# Sitio estático, sin paso de build. Se publica la raíz del repo tal cual.
+# ⛔ SITIO RETIRADO (2026-07-31): Experiencias vive ahora DENTRO del hub.
+#
+# La app pasó a ser una sección del hub —https://hub.verticecorp.cl/#/experiencias— con la sesión, los
+# permisos y el diseño del hub. Los datos no se movieron: ya vivían en el Supabase del hub con prefijo
+# `exp_` desde julio, así que ambos sitios estaban leyendo y escribiendo lo MISMO.
+#
+# Por eso esto es una redirección y no un apagado: mientras los dos estén arriba, alguien puede seguir
+# marcando tareas desde el sitio viejo —con su login viejo y sin los permisos del hub— y el avance del
+# evento quedaría dependiendo de por dónde entró cada uno.
+#
+# `force = true` es obligatorio: sin él, Netlify sirve primero el archivo estático que exista
+# (index.html, Tablero.html) y la redirección solo aplicaría a rutas inexistentes — o sea, a nada.
 [build]
   publish = "."
   command = ""
+
+# Todo, incluidas las rutas viejas (/Tablero.html, /#dashboard, /#usuarios), va a la sección del hub.
+[[redirects]]
+  from = "/*"
+  to = "https://hub.verticecorp.cl/#/experiencias"
+  status = 301
+  force = true
 
 # Cabeceras básicas
 [[headers]]
